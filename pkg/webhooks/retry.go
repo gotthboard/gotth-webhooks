@@ -70,7 +70,7 @@ func parseRetryAfter(value string, now time.Time, maxDelay time.Duration) (time.
 	if len(value) > maxResponseHeaderBytes || maxDelay <= 0 {
 		return 0, false
 	}
-	value = strings.TrimSpace(value)
+	value = strings.Trim(value, " \t")
 	if value == "" {
 		return 0, false
 	}

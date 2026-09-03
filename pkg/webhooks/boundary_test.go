@@ -254,7 +254,7 @@ func TestRetryAfterHeaderBoundAndSaturation(t *testing.T) {
 	if _, ok := parseRetryAfter(strings.Repeat("9", maxResponseHeaderBytes+1), now, time.Minute); ok {
 		t.Fatal("oversized Retry-After accepted")
 	}
-	for _, value := range []string{"+5", "-1", "1x", "\x805"} {
+	for _, value := range []string{"+5", "-1", "1x", "\x805", "\u00a05\u00a0"} {
 		if _, ok := parseRetryAfter(value, now, time.Minute); ok {
 			t.Errorf("invalid delay-seconds %q accepted", value)
 		}

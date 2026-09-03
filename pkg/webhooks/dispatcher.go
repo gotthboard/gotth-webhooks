@@ -14,8 +14,9 @@ type dependencies struct {
 	wait      func(context.Context, time.Duration) error
 }
 
-// Dispatcher is an immutable, concurrency-safe outbound sender. Calls sharing
-// a delivery ID still require consumer-owned durable coordination.
+// Dispatcher is an immutable outbound sender that is safe for concurrent use
+// when its Recorder fulfills the interface's concurrency contract. Calls
+// sharing a delivery ID still require consumer-owned durable coordination.
 type Dispatcher struct {
 	config    validatedConfig
 	transport http.RoundTripper
