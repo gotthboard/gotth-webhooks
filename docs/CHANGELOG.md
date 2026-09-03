@@ -793,7 +793,7 @@ Risks / non-goals:
 
 ### 2026-09-03 16:50:00 CDT — Account for zero-progress body reads
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `a3fb596b018069e65562c6a5f434236b9e7b37b4`
 
 Affected files:
 
@@ -820,6 +820,41 @@ Risks / non-goals:
   changes.
 - The real-consumer contract and dependency pin remain separate admission
   blockers. No push, tag, release, deployment, or live request is performed.
+
+### 2026-09-03 17:10:00 CDT — Record response-callback contract evidence
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record exact-source three-revision non-comment identity, race, coverage,
+focused, fuzz, HMAC, clean-clone, synthetic-consumer, authority-hash, and
+provenance evidence for comments-only source
+`a3fb596b018069e65562c6a5f434236b9e7b37b4`. Preserve `in_progress` state for
+fresh independent review and the separate real-consumer dependency pin.
+
+Verification:
+
+- exact commands, revision, results, paths, and SHA-256 values in feature
+  evidence
+
+Risks / non-goals:
+
+- This evidence does not claim a clean independent review, admission, release,
+  compatibility, or consumer behavior.
+- No push, PR, tag, deployment, live request, or remote mutation is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 

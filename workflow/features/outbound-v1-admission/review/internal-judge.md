@@ -273,3 +273,28 @@ any changed production line that is not a `//` comment. Exact verify/build,
 uncached race coverage, focused race50, three fuzz targets, HMAC, synthetic
 compile, authority hashes, provenance, and detached source clone pass. This is
 not a CLEAN claim; fresh independent review and the consumer pin remain open.
+
+## Independent cold pass 11 — NARROW AND RETRY
+
+Reviewed evidence head: `a23389dea35f10f979432b61e276c6e7e382863d`
+
+The independent Judge found that `consumeResponse` bounded local CPU only by
+bytes even though an arbitrary body may return `(0, nil)` repeatedly. The same
+local callback-loop work was absent from attempt and Deliver. Report:
+`/tmp/webhooks-judge-11-independent.md`, SHA-256
+`c54a8c8046fad7d664b859cc5cbeb5e9f2274a9232f746186c0393e69eca5c07`.
+
+## Repair pass 19 — FINDING ADDRESSED / INDEPENDENT RECHECK PENDING
+
+Reviewed source: `a3fb596b018069e65562c6a5f434236b9e7b37b4`
+
+The response contracts now define `c`/`c_i` as body Read callback/local loop
+iterations and add those terms to local CPU. Delegated body costs explicitly
+cover those Reads and the one Close when a body exists. The prose states that
+no finite byte-only CPU bound exists for a body repeatedly returning `(0,
+nil)`. Three-revision normalized source hashing and comment-only diff assertions
+prove executable production source unchanged from `f4ffb41` through `a23389d`
+to this repair. Exact verify/build, uncached race coverage, focused race50,
+three fuzz targets, HMAC, synthetic compile, authority hashes, provenance, and
+detached source clone pass. This is not a CLEAN claim; fresh independent review
+and the consumer pin remain open.

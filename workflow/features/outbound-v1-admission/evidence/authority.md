@@ -54,3 +54,10 @@ The pass-10 repair read the adjacent `validateMessage`, `buildRequest`,
 propagates the callee's already-declared HMAC costs and treats caller-supplied
 `io.ReadCloser.Read`/`Close` CPU, allocation, I/O, and latency as delegated.
 No runtime source, new authority fetch, broker packet, or graph was required.
+
+The pass-11 repair directly inspected Go 1.26.6 `io.copyBuffer` dispatch and
+`io.discard.ReadFrom` at `/usr/lib/go/src/io/io.go:407-415,662-675`. A Reader
+may repeatedly return `(0, nil)`, so response byte count alone does not bound
+local copy-loop iterations. The contract now carries completed Read callback
+count through `consumeResponse`, attempt, and Deliver. No runtime source, new
+fetch, broker packet, or graph was required.
