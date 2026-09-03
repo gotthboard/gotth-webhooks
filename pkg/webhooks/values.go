@@ -355,8 +355,11 @@ func isPublicAddress(ip netip.Addr) bool {
 }
 
 // canonicalPort validates a dial target and returns its host and fixed port.
-// Complexity: time and auxiliary space O(n), Omega(n), tight Theta(n); n is
-// address bytes, delegated to net.SplitHostPort.
+// Complexity: time is S(n)+O(1), with no tighter bound asserted by the public
+// contract; S(n) is delegated net.SplitHostPort work for n address bytes.
+// Successful-path auxiliary space is O(1), Omega(1), tight Theta(1), because
+// returned host/port strings are substring views. Rejection additionally
+// delegates bounded error allocation to net.SplitHostPort and fmt.Errorf.
 func canonicalPort(address string) (string, string, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil || port != strconv.Itoa(443) {

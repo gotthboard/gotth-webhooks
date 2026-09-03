@@ -42,10 +42,12 @@ func consumeResponse(body io.ReadCloser) (int64, error) {
 
 // retryDelay calculates saturating exponential delay and honors a valid
 // Retry-After only when it increases the delay, always capped by MaxDelay.
-// Complexity: time O(a+r), Omega(a), tight Theta(a+r) for valid date parsing;
-// auxiliary space inherits http.ParseTime and is O(r), Omega(1), with no tight
-// bound established by its public contract; a is prior attempt number and r is
-// Retry-After bytes.
+// Complexity: worst-case time O(a+P(r)), Omega(1), with no input-independent
+// tight bound because delay saturation can stop the loop immediately; auxiliary
+// space O(S(r)), Omega(1), with no tight bound established by the delegated
+// parser contracts. P(r) and S(r) are parseRetryAfter time and space, including
+// delegated http.ParseTime costs, for r Retry-After bytes; a is the prior
+// attempt number.
 func retryDelay(policy RetryPolicy, attempt int, retryAfter string, now time.Time) time.Duration {
 	delay := policy.InitialDelay
 	for step := 1; step < attempt && delay < policy.MaxDelay; step++ {

@@ -120,6 +120,9 @@ query. Callers receive stable sentinels and inspect bounded result/receipt
 classes, while treating any delivery fingerprint as sensitive. Destination
 policy, deterministic TLS/protocol, and unknown transport failures are
 permanent; only the documented typed transient allowlist is retryable.
+For an exhausted multi-address dial, every observed error must be in that
+allowlist before the aggregate is retryable. A local resource/configuration or
+unknown error makes a mixed aggregate permanent and its details are redacted.
 
 ## Production-unit order
 

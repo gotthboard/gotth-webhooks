@@ -85,6 +85,11 @@ safe-dialer-marked transient lookup/dial failures, selected connection errno
 values, and EOF/truncation. Destination rejection, certificate validation, TLS
 alerts/record failures, HTTP protocol/header-limit failures, and every unknown
 transport error are permanent. Caller cancellation remains canceled.
+When every validated address fails to dial, the aggregate is retryable only if
+every observed dial failure belongs to the transient allowlist; any local
+resource/configuration or unknown failure in a mixed set makes the aggregate
+permanent. This fail-closed rule avoids hiding a deterministic failure behind a
+different address's transient failure.
 
 While the process survives, the library records an attempt result before
 another attempt or return. Recording uses a separate bounded context so caller
