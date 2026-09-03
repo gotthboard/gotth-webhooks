@@ -1,38 +1,42 @@
 # Local repair verification evidence
 
-Independent orchestrator review rejected exact commit
-`a5a3b1060989f220bf97c4733a3248ac4c7e9130`; its evidence does not support
-admission. Findings 2 through 9 are repaired at exact source tip
-`7a0a940b10774b66eab3a5badd832181e560226a`. Independent post-repair reviews
-rejected evidence heads `8696c6ebeebb0111f070d10d9b98768df066c932`
-and `7c3fc0b18018b41a50b94b0d13952f7dba6b5aa0` for exhausted-dial,
-wire-specification, empty-port, complexity, and changelog defects. The new
-source tip repairs them without changing the consumer blocker.
+Independent reviews rejected the prior candidates through exact head
+`ff4fee3f5aa94cb5b44694050188793e5b181a8d`. Source commit
+`be6f7150f3419ff3bcb971476119e7cc3f2cb10b` repairs the remaining
+content-type control-byte contract. Exact candidate
+`94f2b7d080d9959af3c1d23a5a4349b555ee240b` also corrects historical
+changelog times and file attribution against Git. The consumer blocker is
+unchanged.
 
 Exact source-tip commands and results:
 
 - `make verify` — PASS under Go 1.26.6-X:nodwarf5.
 - `go test -mod=readonly -count=1 -race -coverprofile=... ./...` — PASS,
   96.5%. Artifact hashes:
-  - coverage: `72f5d9ba7613587f4f4cc318ea8d0c4fe4e3924ae774ef2fa744fbfa2bf2ebe8`;
-  - log: `80cd7074ef6734e52f7093509085ef64f64c8bbf16b141492fc7d46a199ff131`;
+  - coverage: `d726bb571e9c7aaa908017281cf2e939ceb441d9dee0458292585ac537d206f4`;
+  - log: `0ea7a506966f3668504a627d4eee3385245895feae54a3f80008aec91ef1da57`;
   - function summary:
-    `0c2e57d2444c7451a424e2d3baa35968d72d44bb187bff1d9c26dbe37171479f`.
+    `bd04b3a37fc42b96b3a1f891327d9606b51ecdb03031ae1b3edc44ca6cee0ef8`.
 - Fifty uncached full race runs — PASS; log SHA-256
-  `3c318c052b4ecbd04a9e80c614d49f8988e54d51027485bce4f245caa17c96c8`.
-- `FuzzParseEndpoint` — PASS, 64,799 executions/5 seconds.
-- `FuzzSignedRequestDeterministic` — PASS, 76,791 executions/5 seconds.
-- Detached clone `/tmp/gotth-webhooks-7a0a940-clean.fnWUVi/repo`, detached at
-  exact object `7a0a940b10774b66eab3a5badd832181e560226a`, with fresh empty
+  `06a0544953f7e992d1d81f4fa435b4ace668f4e9e22a96a97497a9c13f266b2c`.
+- `FuzzCanonicalContentType` — PASS, 115,255 executions/5 seconds; log
+  SHA-256 `8b950e8ba634b6a64e87d9ec35e48671196975534ed789d368e73d5870674fa7`.
+- `FuzzSignedRequestDeterministic` — PASS, 82,089 executions/5 seconds; log
+  SHA-256 `e24e14b88b3e57395d5f48742d131b0bc0731b7081566383f9f5d089619290ce`.
+- Detached clone `/tmp/gotth-webhooks-94f2b7d-clean.FPVPPK/repo`, detached at
+  exact object `94f2b7d080d9959af3c1d23a5a4349b555ee240b`, with fresh empty
   `GOCACHE`: `make verify` PASS at 96.5%; tracked status clean.
 - Synthetic module `/tmp/gotth-webhooks-consumer`:
   `go test -mod=readonly -count=1 ./...` — PASS. This is syntax evidence only,
   not a real consumer or compatibility pin.
 - Exact benchmark raw SHA-256:
-  `90fca519b715bc1e0571460acf4b8e1c1f504cf3393b1554e7b7acb095976e97`.
+  `bcb578a6535e9af7ba178440e5fd1950c4b4316c3be9501534c9036fe2491bc7`.
+- Exact file-list and second-resolution CDT heading-time comparison against
+  Git passed for all 16 named changelog commits.
 - Internal cold passes found ASCII-OWS/concurrency wording, false permanent
   status reporting, exhausted-dial classification, exact signed-target and
-  empty-port defects, and cost-contract defects. Fresh pass 10 is source-CLEAN.
+  empty-port defects, cost-contract defects, MIME controls, and changelog
+  provenance. Fresh pass 13 is source-CLEAN.
 
 The exact clean-clone commit and source object are identical. The following
 older evidence is retained only as rejected-history provenance.

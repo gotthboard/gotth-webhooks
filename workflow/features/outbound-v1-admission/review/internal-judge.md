@@ -165,3 +165,28 @@ contracts were repaired across the early-rejection audit. Exact source gates
 pass. Changelog attribution is handled separately in evidence history so it
 can name existing commits without self-reference. Finding 1 remains the
 unchanged consumer-contract blocker.
+
+## Independent cold pass 4 — NARROW AND RETRY
+
+Reviewed commit: `ff4fee3f5aa94cb5b44694050188793e5b181a8d`
+
+Go's MIME parser trimmed some leading/trailing controls and preserved HTAB in
+quoted parameters, violating the stated no-controls contract. Historical
+changelog records also assigned the distribution work to the formatting-only
+`0bba059` commit and used several non-Git heading times. The consumer blocker
+remained independently decisive.
+
+## Repair pass 13 — SOURCE CLEAN / ADMISSION BLOCKED
+
+Reviewed commit: `94f2b7d080d9959af3c1d23a5a4349b555ee240b`
+
+A direct pre-parse scan now rejects all ASCII C0 bytes and DEL. Tests cover
+every rejected byte in leading, trailing, and quoted-parameter positions at
+the canonicalization, signing-validation, and public Deliver boundaries; no
+transport or receipt side effect occurs. Valid spaces and quoted UTF-8 MIME
+parameter values remain canonical and signature-stable. Historical changelog
+entries are split by actual commit, with every named object's exact file list
+and second-resolution CDT author/committer time mechanically matched to Git.
+Exact gates, fifty race runs, affected fuzzing, benchmark observation, clean
+clone, external syntax fixture, and pass-13 cold review pass. Admission remains
+blocked solely on the absent real-consumer contract and pin.

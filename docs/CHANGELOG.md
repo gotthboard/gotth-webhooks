@@ -468,6 +468,31 @@ Risks / non-goals:
 - The real-consumer blocker remains open; this does not admit or release the
   API.
 
+### 2026-09-03 14:07:09 CDT — Correct webhook changelog provenance
+
+Commit: `94f2b7d080d9959af3c1d23a5a4349b555ee240b`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+
+Explanation:
+
+Replace broad and grouped historical records with one exact record per Git
+object. Match every named commit's affected-file list and second-resolution
+CDT author/committer time, including the substantive distribution commits and
+their formatting-only follow-up.
+
+Verification:
+
+- exact file-list and heading-time comparison against Git for all 16 named
+  commits
+
+Risks / non-goals:
+
+- This repairs evidence provenance only; it does not rewrite Git history or
+  change implementation, admission, or release state.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

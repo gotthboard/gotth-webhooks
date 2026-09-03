@@ -25,30 +25,32 @@ semantics and provide matched evidence before claiming an overall speedup.
   after exactly the bounded read.
 - Ten sample means per workload; nearest-rank percentiles. With ten samples,
   p95 and p99 are both the maximum and are coarse.
-- Raw exact-source output at
-  `7a0a940b10774b66eab3a5badd832181e560226a`:
-  `/tmp/gotth-webhooks-7a0a940.benchmark.txt`, SHA-256
-  `90fca519b715bc1e0571460acf4b8e1c1f504cf3393b1554e7b7acb095976e97`.
+- Raw exact-candidate output at
+  `94f2b7d080d9959af3c1d23a5a4349b555ee240b`:
+  `/tmp/gotth-webhooks-94f2b7d.benchmark.txt`, SHA-256
+  `bcb578a6535e9af7ba178440e5fd1950c4b4316c3be9501534c9036fe2491bc7`.
 
 ## Results
 
 | Workload | p50 | p95 | p99 | p50 throughput | Bytes/op range | Allocs/op range |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| empty payload | 92.875 us | 173.101 us | 173.101 us | 10,767.16 ops/s | 4,295..4,314 | 73 |
-| small 1 KiB payload | 144.222 us | 176.175 us | 176.175 us | 6,933.75 ops/s | 5,313..5,343 | 74 |
-| typical 64 KiB payload | 3.448488 ms | 3.697285 ms | 3.697285 ms | 289.98 ops/s | 69,853..70,125 | 74 |
-| boundary 1 MiB payload | 54.951676 ms | 58.882721 ms | 58.882721 ms | 18.20 ops/s | 1,053,388..1,062,300 | 76..83 |
-| pathological 64 KiB+1 response | 120.415 us | 365.591 us | 365.591 us | 8,304.61 ops/s | 4,473..4,537 | 78 |
+| empty payload | 8.658 us | 12.560 us | 12.560 us | 115,500.12 ops/s | 4,296..4,300 | 73 |
+| small 1 KiB payload | 18.202 us | 25.147 us | 25.147 us | 54,939.02 ops/s | 5,322..5,329 | 74 |
+| typical 64 KiB payload | 0.424294 ms | 0.590677 ms | 0.590677 ms | 2,356.86 ops/s | 69,918..70,084 | 74 |
+| boundary 1 MiB payload | 6.648275 ms | 8.922416 ms | 8.922416 ms | 150.41 ops/s | 1,054,117..1,056,735 | 76..78 |
+| pathological 64 KiB+1 response | 10.516 us | 10.940 us | 10.940 us | 95,093.19 ops/s | 4,481..4,486 | 78 |
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection
-proves bounded work and failure, not network latency. Exact-source payload
-throughput ranged from 17.73 to 19.73 MB/s across typical and boundary payload
-samples.
+proves bounded work and failure, not network latency. Exact-candidate payload
+throughput ranged from 110.95 to 196.40 MB/s across typical and boundary
+payload samples.
 
-Earlier runs on the same uncontrolled shared host produced materially different
-wall times while allocations remained comparatively stable. The correctness
-repair also removed the `http.Client` redirect layer, so its lower allocation
-counts are a mechanism change, not a controlled optimization comparison. The
+Earlier runs on the same uncontrolled shared host produced drastically
+different wall times while allocations remained comparatively stable. The
+content-type repair adds a scan of at most 256 bytes and is not treated as an
+optimization. An earlier correctness repair also removed the `http.Client`
+redirect layer, so lower allocation counts across older runs include a
+mechanism change rather than a controlled optimization comparison. The
 original raw artifact remains `/tmp/gotth-webhooks-benchmark.txt` with SHA-256
 `e4d7d750ece5515bb3ac9f9f8db41185c60b00320ace8af45e3e168d7e4de712`.
 Therefore these wall-clock percentiles are environment observations, not a
