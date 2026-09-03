@@ -1,0 +1,67 @@
+schema_version = 1
+project = "gotth-webhooks"
+profile = "strict"
+active = "outbound-v1-admission"
+
+[settings]
+worktree_root = "worktrees"
+workflow_root = "workflow"
+default_branch = "main"
+
+[toolchain]
+build = "go build ./..."
+test = "go test -mod=readonly -race -cover ./..."
+lint = "go vet -mod=readonly ./..."
+format = "gofmt -w"
+coverage = "go test -mod=readonly -coverprofile=coverage.out ./..."
+
+[coverage]
+map = "workflow/COVERAGE.md"
+profile = "strict"
+block_unresolved_high_risk = true
+exception_expiry_days = 14
+
+[feature.outbound-v1-admission]
+id = "outbound-v1-admission"
+slug = "outbound-v1-admission"
+name = "Admit consumer-neutral outbound webhook mechanics"
+namespace = "webhooks"
+parent = ""
+state = "in_progress"
+risk = "critical"
+assurance = "traceable-tests"
+created_at = "2026-09-03T15:37:00Z"
+activated_at = "2026-09-03T15:37:00Z"
+updated_at = "2026-09-03T15:37:00Z"
+completed_at = ""
+folder = "workflow/features/outbound-v1-admission"
+source_path = "pkg/webhooks"
+worktree = "/tmp/gotth-webhooks-worktrees/v1-webhooks"
+branch = "feature/v1-webhooks"
+scope = ["Opaque outbound HTTPS webhook requests", "HMAC-SHA-256 request signing", "Public-network endpoint enforcement", "Bounded retries and receipts", "MIT licensing"]
+non_goals = ["Product events or subscriptions", "Inbound webhooks", "Exactly-once claims", "Private endpoints or custom transports", "Durable storage adapter"]
+affected_files = ["**"]
+invariants = ["Consumers authorize and minimize payloads", "No request follows a redirect or uses an ambient proxy", "Every actual attempt is recorded before another send", "Secrets and payloads never enter receipts", "No live service or remote repository is mutated"]
+acceptance = ["Requirements trace to source, tests, and evidence", "Format, vet, race, repeated race, coverage, fuzz, boundary, TLS integration, external compile, performance, and cold review gates pass"]
+
+[feature.outbound-v1-admission.rollback]
+strategy = "revert_local_feature_commits"
+notes = "No tag, push, release, deployment, or consumer pin exists"
+data_loss_risk = false
+requires_migration_down = false
+
+[[feature.outbound-v1-admission.interface]]
+name = "Go library API"
+kind = "api"
+stability = "unstable-unreleased"
+change = "new"
+
+[[feature.outbound-v1-admission.verification]]
+id = "local"
+kind = "unit"
+command = "make verify"
+required = true
+timeout_seconds = 1200
+side_effect = "local_write"
+network = false
+retries = 0

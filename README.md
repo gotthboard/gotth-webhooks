@@ -1,45 +1,134 @@
 # gotth-webhooks
 
-> **Distribution:** GitHub is the public clone and, only if implementation is
-> admitted later, the future release endpoint.
-> Forgejo remains canonical development and the issue/contribution location.
-> See [the distribution contract](docs/distribution.md).
+Consumer-neutral mechanics for bounded, signed outbound webhooks.
 
+> **Distribution:** Forgejo remains canonical development. GitHub is the public
+> clone and future Go/release endpoint after admission. This branch is
+> implemented but unreleased; no tag or compatibility promise exists yet. See
+> [the distribution contract](docs/distribution.md).
 
-Reserved for reusable outbound webhook delivery mechanics shared by GOTTH
-applications.
+## Boundary
 
-## Intended boundary
+The package sends opaque bytes only after the caller has authorized and
+minimized them. Consumers own event definitions, subscriptions, recipients,
+consent/privacy policy, durable scheduling, receipt storage, secret storage,
+and receiver authorization. The package does not know what a GOTTH Board event
+is and does not invent one.
 
-This project may eventually own canonical request signing, timestamp and replay
-protection, endpoint validation, delivery idempotency, bounded retry policy,
-receipt recording, secret rotation, and conformance fixtures. Consumers own
-event definitions, subscriptions, authorization, payload minimization, and the
-decision that an event may cross the application boundary.
+V1 provides:
 
-No webhook work begins until a consumer PRD names its events, recipients,
-privacy constraints, delivery guarantees, and operator controls.
+- HMAC-SHA-256 signatures binding target, delivery ID, attempt, timestamp,
+  event type, content type, key ID, and payload digest;
+- a stable delivery identity and semantics fingerprint for receiver and sender
+  deduplication;
+- HTTPS-only endpoint validation, public-address DNS checks immediately before
+  literal-IP dialing, no ambient proxy, and no redirects;
+- explicit bounded retry classification, `Retry-After`, cancellation,
+  per-attempt timeout, response-header limit, and response-body limit;
+- mandatory consumer-owned receipt recording before retry or return; and
+- explicit signing key IDs for bounded receiver-side secret rotation.
 
-## Non-goals
+It does not provide exactly-once delivery. A receiver can commit work before a
+sender observes a timeout. The receiver must durably deduplicate the stable
+delivery ID before effects, and the sender must reconcile unknown outcomes.
 
-- A generic event bus, plugin runtime, workflow engine, or inbound API.
-- Automatically exporting application records or confidential fields.
-- Unbounded retries or caller-selected internal-network destinations.
+## Installation and compatibility
 
-## Status
+There is no release to install yet. Do not pin this repository until admission,
+consumer verification, and an exact tag are complete.
 
-Placeholder only. There is no implementation, API, release, tag, compatibility
-promise, or dependency to pin.
+The current candidate module is `github.com/gotthboard/gotth-webhooks`, requires
+Go 1.26.6, uses only the Go standard library, and supports HTTPS port 443. The
+first compatibility contract remains unstable until a consumer pin and release
+tag exist.
 
-## Installation, compatibility, and support
+## API
 
-Planned placeholder only. There is no implementation, API, support promise, or
-release.
+```go
+type receipts struct{}
 
-There is nothing to install or import. Do not add this repository as a
-dependency.
+func (receipts) Record(ctx context.Context, receipt webhooks.Receipt) error {
+	// Upsert by (DeliveryID, Attempt). Exact replay is idempotent; reject the
+	// same DeliveryID with a different DeliveryFingerprint.
+	return durableStoreReceipt(ctx, receipt)
+}
 
-The repository has no selected license and no long-term support promise.
-Versioning, release admission, security reporting, and contribution details are
-in [the release policy](docs/RELEASING.md), [security policy](SECURITY.md), and
-[contribution guide](CONTRIBUTING.md).
+dispatcher, err := webhooks.New(webhooks.Config{
+	Secret: webhooks.Secret{
+		KeyID: "2026-09-current",
+		Value: currentSecretFromSecretManager,
+	},
+	Recorder: receipts{},
+})
+if err != nil {
+	return err
+}
+
+result, err := dispatcher.Deliver(ctx, webhooks.Message{
+	Endpoint:    authorizedEndpoint,
+	DeliveryID:  durableDeliveryID,
+	FirstAttempt: durableNextAttempt, // zero is shorthand for the first call
+	EventType:   authorizedOpaqueType,
+	ContentType: "application/json",
+	Body:        minimizedOpaquePayload,
+})
+```
+
+The all-zero retry/timeouts select three attempts, 250 ms initial delay, 10 s
+maximum delay, 15 s attempt timeout, and 5 s receipt timeout. Nonzero policies
+must satisfy the documented bounds in [the implementation spec](docs/implementation-spec.md).
+
+`Deliver` is concurrency-safe for unrelated deliveries. Calls sharing one
+delivery ID must be serialized or leased durably by the consumer, which also
+allocates a monotonically increasing `FirstAttempt` across invocations. On an
+`ErrReceipt`, `Result.LastReceipt` contains the exact non-sensitive record for
+safe store reconciliation without resending. An in-memory map would not protect
+multiple processes or survive a crash, so the library does not fake that
+guarantee.
+
+## Receiver contract
+
+Every request is POST and carries:
+
+- `X-Gotth-Webhook-ID`
+- `X-Gotth-Webhook-Event`
+- `X-Gotth-Webhook-Attempt`
+- `X-Gotth-Webhook-Timestamp`
+- `X-Gotth-Webhook-Key-ID`
+- `X-Gotth-Webhook-Signature: v1=<hex HMAC-SHA-256>`
+
+The exact canonical input is specified in
+[the implementation spec](docs/implementation-spec.md). Receivers must select a
+bounded active/retired secret by key ID, recompute the MAC, compare with
+`hmac.Equal`, enforce a timestamp window, bind the delivery ID to immutable
+semantics, and durably deduplicate before side effects.
+
+Rotation means constructing a dispatcher with the new current key/key ID while
+receivers temporarily retain the old verification key for their declared
+replay window. Key IDs are signed public metadata. Secrets are never stored in
+receipts or errors.
+
+## SSRF boundary and its limits
+
+The production constructor does not accept custom transports, proxies, TLS
+bypasses, private addresses, alternate ports, or redirect policy. Each new TCP
+connection resolves and validates every answer before dialing a numeric public
+address; mixed public/private answers fail closed. Existing validated
+connections may be reused without repeated DNS lookup.
+
+This is defense in depth, not a firewall. A compromised resolver, dialer,
+kernel, route, NAT/service-mesh remap, public destination, or newly allocated
+IANA special prefix can defeat assumptions below this process. Operators must
+enforce independent egress policy. See [architecture](docs/architecture.md) and
+[security policy](SECURITY.md).
+
+## Scope exclusions
+
+- Product events, subscriptions, payload schemas, privacy policy, or UI.
+- Inbound webhooks, receiver routing, queues, schedulers, or workflows.
+- Private endpoints, HTTP, custom ports, proxies, redirects, or mTLS in V1.
+- Automatic secret management, receipt database schema, or deployment.
+
+Release policy, contribution path, and current verification evidence are in
+[releasing](docs/RELEASING.md), [contributing](CONTRIBUTING.md), and
+[verification](docs/verification.md).

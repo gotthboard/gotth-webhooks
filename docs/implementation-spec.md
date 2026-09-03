@@ -1,0 +1,117 @@
+# Implementation specification
+
+## Public contract
+
+- `New(Config)`: validate policy, copy the signing secret, and construct the
+  owned hardened transport.
+- `NewDeliveryID()`: return a 192-bit cryptographically random base64url ID.
+- `Dispatcher.Deliver(ctx, Message)`: validate and copy the message, perform at
+  most `RetryPolicy.MaxAttempts`, durably record every actual attempt, and
+  return the final known result.
+- `Recorder.Record(ctx, Receipt)`: consumer-owned persistence boundary. Calls
+  may be repeated after an unknown store outcome, so implementations must
+  upsert by `(delivery_id, attempt)` and reject conflicting records.
+
+`Config` contains one `Secret`, a bounded `RetryPolicy`, attempt and receipt
+timeouts, and a required `Recorder`. Production dependencies are fixed. Tests
+exercise internal dependency seams that are not available to consumers.
+
+`Message` contains endpoint, stable delivery ID, consumer-durable first attempt
+number, opaque event type, content type, and body. Zero first attempt defaults
+to one and is suitable only for the first invocation. A consumer retry after a
+process boundary must allocate the next monotonically increasing number from
+durable state. `Deliver` copies the body before network work. The body limit is
+1 MiB. Identifiers and event types are restricted printable tokens; content
+type must parse as a media type and cannot contain control characters.
+
+## Wire contract
+
+Requests are POST with these headers:
+
+- `Content-Type`
+- `X-Gotth-Webhook-ID`
+- `X-Gotth-Webhook-Event`
+- `X-Gotth-Webhook-Attempt`
+- `X-Gotth-Webhook-Timestamp`
+- `X-Gotth-Webhook-Key-ID`
+- `X-Gotth-Webhook-Signature: v1=<lowercase hex HMAC-SHA-256>`
+
+The signature input is UTF-8 bytes:
+
+```text
+gotth-webhook-signature-v1\n
+POST\n
+<normalized https authority><request-target>\n
+<delivery-id>\n
+<attempt decimal>\n
+<timestamp decimal>\n
+<event-type>\n
+<content-type>\n
+<key-id>\n
+<lowercase hex SHA-256 body digest>\n
+```
+
+The canonical authority always includes port `443`; DNS names are lowercase
+ASCII and IPv6 literals are bracketed. An empty path becomes `/`; the parsed
+escaped path and raw query form the request target. Ambiguous opaque URLs,
+userinfo, fragments, encoded-host tricks, and non-443 ports fail validation.
+
+Receivers must compare MACs in constant time, enforce their own timestamp
+window, bind the delivery ID to immutable event/body semantics, and durably
+deduplicate before producing side effects.
+
+## Limits and retry state machine
+
+- payload: 1 MiB;
+- response body: 64 KiB plus one-byte overflow probe;
+- response headers: 64 KiB;
+- attempts: 1 through 10;
+- attempt timeout: 100 ms through 2 minutes;
+- receipt timeout: 100 ms through 30 seconds;
+- initial/max retry delay: 1 ms through 1 minute, with max not below initial;
+- secret: 32 through 1024 bytes;
+- delivery/key/event token: 1 through 128 ASCII token characters;
+- attempt number: 1 through 1,000,000,000, including all attempts in a call;
+- content type: 1 through 256 bytes.
+
+After a retryable outcome, the delay is exponential and saturating. A valid
+`Retry-After` delta or HTTP date may increase that delay but never exceed the
+configured maximum. Cancellation during an attempt or wait returns promptly.
+No jitter is applied in V1 because deterministic policy is more useful to a
+consumer-owned durable scheduler; callers should distribute scheduling above
+this library when operating large fleets.
+
+## Receipt contract
+
+A receipt contains delivery ID, a stable SHA-256 delivery fingerprint,
+one-based attempt, request timestamp, start and finish times, outcome, status
+code when present, bounded response-byte count, and a stable error class. The
+fingerprint binds normalized target, event type, content type, and body while
+excluding attempt, timestamp, and signing key so retries and key rotation keep
+one identity. It contains no endpoint, event, body, key ID, signature, response
+body, or raw error string. This minimizes accidental disclosure while letting
+the durable store reject one delivery ID reused with different semantics.
+
+`Record` runs after the response body closes or the transport returns. It uses
+`context.WithoutCancel` plus the configured receipt timeout. A store failure is
+wrapped with `ErrReceipt` and prevents further sends. A store implementation
+must make exact replay idempotent and conflicting replay an error.
+
+Go context deadlines are cooperative. The library supplies a bounded record
+context but cannot force a broken `Recorder` implementation to return. The
+recorder is trusted consumer infrastructure and must honor the context.
+When recording returns an unknown failure, `Result.LastReceipt` contains the
+exact record so the consumer can query or replay the idempotent store operation
+without issuing another HTTP request.
+
+## Production-unit order
+
+1. values, endpoint canonicalization, public-address policy, and random ID;
+2. canonical signing and request construction;
+3. retry classification, delay parsing, and bounded response consumption;
+4. receipt recording and the delivery loop;
+5. hardened transport and integration boundaries;
+6. external consumer, performance, and review admission.
+
+Each production function receives an adjacent complexity contract naming byte
+inputs, address counts, attempts, I/O, allocations, and delegated costs.

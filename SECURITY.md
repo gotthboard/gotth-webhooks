@@ -2,18 +2,43 @@
 
 ## Supported versions
 
-Planned placeholder; no implementation or API. No version currently carries a
-separate long-term security-support promise. Once releases exist, supported
-versions will be listed here and in the changelog.
+No release exists, so no version currently carries a long-term security-support
+promise. The implementation branch is a review candidate, not a published
+security contract. Supported versions will be listed here and in the changelog
+after an admitted release.
+
+## Security boundary
+
+Consumers must authorize recipients and minimize opaque payloads before calling
+the library. They must keep signing secrets in an appropriate secret manager,
+use unique key IDs, rotate keys with a bounded receiver verification window,
+coordinate same-ID sends durably, and make receipt upserts idempotent while
+rejecting a delivery ID reused with another fingerprint.
+
+Receivers must verify the complete V1 canonical signature with `hmac.Equal`,
+enforce a timestamp window, bind each delivery ID to immutable semantics, and
+deduplicate durably before effects. HTTP delivery is not exactly once. Never
+treat a timeout as proof that the receiver did nothing.
+
+Endpoint checks allow only canonical HTTPS port 443, reject explicit and
+DNS-resolved special/private addresses, bypass ambient proxies, and refuse
+redirects. The maintained prefix list is not a replacement for host/network
+egress controls. Compromised DNS, routing, NAT, service mesh, kernel, or a
+public endpoint remains outside the process trust boundary.
+
+A `Recorder` receives a deadline detached from caller cancellation so a canceled
+request does not silently erase evidence. Go contexts are cooperative: a broken
+recorder that ignores its context can still block. Recorder implementations are
+trusted consumer infrastructure and must honor cancellation/deadlines.
 
 ## Reporting a vulnerability
 
 Do not publish exploit details in a GitHub issue, Forgejo issue, pull request,
 or discussion. Request a private reporting channel from the maintainers through
 the canonical Forgejo project at
-<https://git.dannyhunn.com/agents/gotth-webhooks> using only non-sensitive information.
+<https://git.dannyhunn.com/agents/gotth-webhooks> using only non-sensitive
+information.
 
 The Forgejo project may require an account or explicit access. If it is not
 accessible, this project does not yet offer a public vulnerability-reporting
-channel. That is a known distribution limitation; do not disclose sensitive
-details merely to obtain contact.
+channel. Do not disclose sensitive details merely to obtain contact.

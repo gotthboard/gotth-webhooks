@@ -13,12 +13,15 @@ endpoints.
 
 ## Maturity and compatibility
 
-Current status: planned placeholder; no implementation or API.
+Current status: implemented local admission candidate; no release, tag, public
+compatibility promise, or consumer pin. Local green evidence does not itself
+admit the implementation.
 
 ## Installation
 
-There is nothing to install or import. This repository is a planned namespace,
-not a library release.
+There is no release to install. The candidate module path is
+`github.com/gotthboard/gotth-webhooks`, but consumers must not pin it until
+independent review, a real consumer verification, and an exact release tag.
 
 The repository pins Go 1.26.6 where a Go module exists. Supported protocol,
 runtime, database, and tool versions remain the ones stated in the README and
@@ -27,15 +30,17 @@ contracts.
 
 ## Licensing gate
 
-No license file is present. No license has been inferred or selected. New
-release publication remains blocked until the maintainer makes that decision.
+The maintainer selected MIT and the repository now carries the exact license
+text. Release publication remains blocked on implementation admission,
+consumer verification, clean exact-ref verification, and explicit release
+authorization.
 
 ## Migration traceability
 
 | Requirement | Repository implementation | Verification |
 | --- | --- | --- |
 | DIST-001 | Existing history, tags, worktrees, and mirror direction remain unchanged | pinned ref and worktree inventory |
-| DIST-005 | Placeholder remains documentation-only and claims no release | tracked-tree and README audit |
+| WHK-001..013 | Local outbound implementation remains unreleased and scoped to consumer-neutral mechanics | trace and verification audit |
 | DIST-003/004 | README, contribution, security, changelog, and release contracts describe public use and support | documentation audit |
-| DIST-006 | Missing license is stated as a decision gate | license inventory |
+| WHK-013 | MIT decision is represented by the exact license file | license inventory |
 | DIST-008 | Forgejo remains source and GitHub remains the one-way mirror target | push-mirror configuration and exact ref comparison |

@@ -6,6 +6,43 @@ Released sections use Semantic Versioning; unreleased work remains under
 
 ## Unreleased
 
+### 2026-09-03 11:08 CDT — Implement bounded outbound webhook mechanics
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `LICENSE`, `.go-version`, `go.mod`, `Makefile`, `.gitignore`
+- `pkg/webhooks/**`
+- `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/**`
+- `workflow.toml`, `workflow.events.jsonl`, `workflow/**`
+
+Explanation:
+
+Replace the placeholder with a local, unreleased Go 1.26.6 admission candidate
+for opaque outbound HTTPS webhook mechanics. Add canonical HMAC-SHA-256
+signatures, stable delivery identity and semantics fingerprints, public-network
+DNS/literal-dial enforcement, no-proxy/no-redirect transport policy, bounded
+retry/timeout/response handling, consumer-owned durable receipts, explicit key
+IDs for rotation, MIT licensing, lifecycle documents, traceability, and tests.
+
+Verification:
+
+- `make verify`
+- race and 96.9% statement coverage
+- endpoint/signature fuzz campaigns
+- loopback TLS/literal-dial/redirect-denial integration
+- external consumer compile
+- five-regime in-process performance matrix
+
+Risks / non-goals:
+
+- No exactly-once claim, product event, subscription, payload policy, inbound
+  API, database adapter, private endpoint, proxy, redirect, alternate port, or
+  custom production transport.
+- Candidate remains `in_progress` pending exact-commit verification and
+  independent orchestrator review. No push, PR, tag, release, or deployment.
+
 ### 2026-09-03 00:42 CDT — Establish GitHub public distribution
 
 Commit: current commit; hash assigned by Git after commit

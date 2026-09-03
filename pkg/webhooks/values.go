@@ -1,0 +1,311 @@
+package webhooks
+
+import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"mime"
+	"net"
+	"net/netip"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type validatedConfig struct {
+	secret         Secret
+	retry          RetryPolicy
+	attemptTimeout time.Duration
+	receiptTimeout time.Duration
+	recorder       Recorder
+}
+
+type validatedMessage struct {
+	endpoint     endpoint
+	deliveryID   string
+	firstAttempt int
+	eventType    string
+	contentType  string
+	body         []byte
+	fingerprint  [32]byte
+}
+
+type endpoint struct {
+	url       *url.URL
+	canonical string
+}
+
+var deniedPrefixes = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("10.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("127.0.0.0/8"),
+	netip.MustParsePrefix("169.254.0.0/16"),
+	netip.MustParsePrefix("172.16.0.0/12"),
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"),
+	netip.MustParsePrefix("192.88.99.0/24"),
+	netip.MustParsePrefix("192.168.0.0/16"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("198.51.100.0/24"),
+	netip.MustParsePrefix("203.0.113.0/24"),
+	netip.MustParsePrefix("224.0.0.0/4"),
+	netip.MustParsePrefix("240.0.0.0/4"),
+	netip.MustParsePrefix("::/128"),
+	netip.MustParsePrefix("::1/128"),
+	netip.MustParsePrefix("64:ff9b::/96"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("100::/64"),
+	netip.MustParsePrefix("2001::/23"),
+	netip.MustParsePrefix("2001:db8::/32"),
+	netip.MustParsePrefix("2002::/16"),
+	netip.MustParsePrefix("fc00::/7"),
+	netip.MustParsePrefix("fe80::/10"),
+	netip.MustParsePrefix("fec0::/10"),
+	netip.MustParsePrefix("ff00::/8"),
+}
+
+// NewDeliveryID returns a 192-bit CSPRNG-backed, base64url delivery identity.
+// Complexity: time O(n), Omega(n), tight Theta(n); auxiliary space O(n),
+// Omega(n), tight Theta(n); n is the fixed 24-byte entropy input; delegated
+// costs are crypto/rand.Reader and base64 encoding.
+func NewDeliveryID() (string, error) {
+	return newDeliveryID(rand.Reader)
+}
+
+// newDeliveryID isolates the entropy read so its failure contract is directly
+// testable. Complexity: time O(n), Omega(n), tight Theta(n); auxiliary space
+// O(n), Omega(n), tight Theta(n); n is the fixed 24-byte entropy input and the
+// delegated reader must either fill it or return an error.
+func newDeliveryID(source io.Reader) (string, error) {
+	var raw [24]byte
+	if _, err := io.ReadFull(source, raw[:]); err != nil {
+		return "", fmt.Errorf("delivery ID entropy: %w", err)
+	}
+	return "wh_" + base64.RawURLEncoding.EncodeToString(raw[:]), nil
+}
+
+// validateConfig applies all-zero defaults, validates fixed bounds, and copies
+// secret material. Complexity: time O(k), Omega(k), tight Theta(k); auxiliary
+// space O(k), Omega(k), tight Theta(k); k is secret length.
+func validateConfig(cfg Config) (validatedConfig, error) {
+	if cfg.Recorder == nil {
+		return validatedConfig{}, fmt.Errorf("%w: recorder is required", ErrInvalid)
+	}
+	if err := validateToken(cfg.Secret.KeyID, "key ID"); err != nil {
+		return validatedConfig{}, err
+	}
+	if len(cfg.Secret.Value) < minSecretBytes || len(cfg.Secret.Value) > maxSecretBytes {
+		return validatedConfig{}, fmt.Errorf("%w: secret length must be %d..%d bytes", ErrInvalid, minSecretBytes, maxSecretBytes)
+	}
+
+	retry := cfg.Retry
+	if retry == (RetryPolicy{}) {
+		retry = RetryPolicy{MaxAttempts: defaultMaxAttempts, InitialDelay: defaultInitialDelay, MaxDelay: defaultMaxDelay}
+	}
+	if retry.MaxAttempts < 1 || retry.MaxAttempts > 10 || retry.InitialDelay < time.Millisecond || retry.MaxDelay < retry.InitialDelay || retry.MaxDelay > time.Minute {
+		return validatedConfig{}, fmt.Errorf("%w: invalid retry policy", ErrInvalid)
+	}
+	attemptTimeout := cfg.AttemptTimeout
+	if attemptTimeout == 0 {
+		attemptTimeout = defaultAttemptTimeout
+	}
+	if attemptTimeout < 100*time.Millisecond || attemptTimeout > 2*time.Minute {
+		return validatedConfig{}, fmt.Errorf("%w: invalid attempt timeout", ErrInvalid)
+	}
+	receiptTimeout := cfg.ReceiptTimeout
+	if receiptTimeout == 0 {
+		receiptTimeout = defaultReceiptTimeout
+	}
+	if receiptTimeout < 100*time.Millisecond || receiptTimeout > 30*time.Second {
+		return validatedConfig{}, fmt.Errorf("%w: invalid receipt timeout", ErrInvalid)
+	}
+	secret := Secret{KeyID: cfg.Secret.KeyID, Value: append([]byte(nil), cfg.Secret.Value...)}
+	return validatedConfig{secret: secret, retry: retry, attemptTimeout: attemptTimeout, receiptTimeout: receiptTimeout, recorder: cfg.Recorder}, nil
+}
+
+// validateMessage validates and copies the complete caller boundary.
+// Complexity: time O(e+b+c), Omega(e+b+c), tight Theta(e+b+c); auxiliary
+// space O(e+b+c), Omega(b), with no single tight bound across valid URL forms;
+// e, b, and c are endpoint, body, and content-type bytes.
+func validateMessage(msg Message) (validatedMessage, error) {
+	ep, err := parseEndpoint(msg.Endpoint)
+	if err != nil {
+		return validatedMessage{}, err
+	}
+	if err := validateToken(msg.DeliveryID, "delivery ID"); err != nil {
+		return validatedMessage{}, err
+	}
+	if err := validateToken(msg.EventType, "event type"); err != nil {
+		return validatedMessage{}, err
+	}
+	firstAttempt := msg.FirstAttempt
+	if firstAttempt == 0 {
+		firstAttempt = 1
+	}
+	if firstAttempt < 1 || firstAttempt > 1_000_000_000 {
+		return validatedMessage{}, fmt.Errorf("%w: first attempt must be 1..1000000000", ErrInvalid)
+	}
+	contentType, err := canonicalContentType(msg.ContentType)
+	if err != nil {
+		return validatedMessage{}, err
+	}
+	if len(msg.Body) > MaxPayloadBytes {
+		return validatedMessage{}, fmt.Errorf("%w: body exceeds %d bytes", ErrInvalid, MaxPayloadBytes)
+	}
+	body := append([]byte(nil), msg.Body...)
+	return validatedMessage{endpoint: ep, deliveryID: msg.DeliveryID, firstAttempt: firstAttempt, eventType: msg.EventType, contentType: contentType, body: body, fingerprint: deliveryFingerprint(ep.canonical, msg.EventType, contentType, body)}, nil
+}
+
+// deliveryFingerprint binds immutable logical-delivery semantics independently
+// of attempt timestamp and signing-key rotation. Complexity: time O(e+v+c+b),
+// Omega(e+v+c+b), tight Theta(e+v+c+b); auxiliary space O(e+v+c), Omega(e+v+c),
+// tight Theta(e+v+c); e, v, c, and b are endpoint, event, content-type, and body
+// bytes; SHA-256 state is constant and the body is streamed into it.
+func deliveryFingerprint(endpoint, eventType, contentType string, body []byte) [32]byte {
+	hash := sha256.New()
+	_, _ = io.WriteString(hash, "gotth-webhook-delivery-v1\n")
+	_, _ = io.WriteString(hash, endpoint+"\n")
+	_, _ = io.WriteString(hash, eventType+"\n")
+	_, _ = io.WriteString(hash, contentType+"\n")
+	_, _ = hash.Write(body)
+	var result [32]byte
+	copy(result[:], hash.Sum(nil))
+	return result
+}
+
+// validateToken accepts a deliberately small ASCII metadata alphabet.
+// Complexity: time O(n), Omega(1), no input-independent tight Theta bound;
+// auxiliary space O(1), Omega(1), tight Theta(1); n is token bytes.
+func validateToken(value, name string) error {
+	if len(value) == 0 || len(value) > maxTokenBytes {
+		return fmt.Errorf("%w: %s length must be 1..%d bytes", ErrInvalid, name, maxTokenBytes)
+	}
+	for i := range len(value) {
+		c := value[i]
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || strings.ContainsRune("._:-", rune(c))) {
+			return fmt.Errorf("%w: %s contains an invalid byte", ErrInvalid, name)
+		}
+	}
+	return nil
+}
+
+// canonicalContentType parses and deterministically formats one MIME media
+// type. Complexity: time and auxiliary space inherit mime.ParseMediaType and
+// mime.FormatMediaType over n input bytes; O(n), Omega(n), tight Theta not
+// established by their public contract; n is content-type bytes.
+func canonicalContentType(value string) (string, error) {
+	if len(value) == 0 || len(value) > maxContentType {
+		return "", fmt.Errorf("%w: content type length must be 1..%d bytes", ErrInvalid, maxContentType)
+	}
+	mediaType, params, err := mime.ParseMediaType(value)
+	if err != nil {
+		return "", fmt.Errorf("%w: invalid content type", ErrInvalid)
+	}
+	canonical := mime.FormatMediaType(mediaType, params)
+	if canonical == "" || len(canonical) > maxContentType {
+		return "", fmt.Errorf("%w: invalid content type", ErrInvalid)
+	}
+	return canonical, nil
+}
+
+// parseEndpoint returns the exact normalized HTTPS target used for both the
+// request and signature. Complexity: time and auxiliary space O(n), Omega(n),
+// tight Theta(n) for endpoint bytes n, plus delegated URL parsing.
+func parseEndpoint(raw string) (endpoint, error) {
+	if len(raw) == 0 || len(raw) > maxEndpointBytes {
+		return endpoint{}, fmt.Errorf("%w: endpoint length must be 1..%d bytes", ErrInvalid, maxEndpointBytes)
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Opaque != "" || u.User != nil || u.Fragment != "" || u.RawFragment != "" {
+		return endpoint{}, fmt.Errorf("%w: endpoint must be an unambiguous HTTPS URL", ErrInvalid)
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "" || strings.Contains(host, "%") || !validASCIIHost(host) {
+		return endpoint{}, fmt.Errorf("%w: invalid endpoint host", ErrInvalid)
+	}
+	port := u.Port()
+	if port != "" && port != "443" {
+		return endpoint{}, fmt.Errorf("%w: endpoint port must be 443", ErrInvalid)
+	}
+	if ip, err := netip.ParseAddr(host); err == nil && !isPublicAddress(ip) {
+		return endpoint{}, fmt.Errorf("%w: endpoint IP is not public", ErrDestination)
+	}
+	path := u.EscapedPath()
+	if path == "" {
+		path = "/"
+	}
+	authority := host
+	if strings.Contains(host, ":") {
+		authority = "[" + host + "]"
+	}
+	authority += ":443"
+	canonical := "https://" + authority + path
+	if u.ForceQuery || u.RawQuery != "" {
+		canonical += "?" + u.RawQuery
+	}
+	parsed, err := url.Parse(canonical)
+	if err != nil {
+		return endpoint{}, fmt.Errorf("%w: canonical endpoint", ErrInvalid)
+	}
+	return endpoint{url: parsed, canonical: canonical}, nil
+}
+
+// validASCIIHost validates an IP literal or an RFC-compatible conservative
+// DNS label subset. Complexity: time O(n), Omega(1), no input-independent tight
+// Theta bound; auxiliary space O(n), Omega(1), no single tight bound; n is host
+// bytes and the allocation comes from label splitting.
+func validASCIIHost(host string) bool {
+	if ip, err := netip.ParseAddr(host); err == nil {
+		return ip.Zone() == ""
+	}
+	if len(host) > 253 || strings.HasSuffix(host, ".") || !strings.Contains(host, ".") {
+		return false
+	}
+	for _, label := range strings.Split(host, ".") {
+		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+			return false
+		}
+		for i := range len(label) {
+			c := label[i]
+			if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-') {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// isPublicAddress rejects explicitly enumerated special-purpose address
+// prefixes after unmapping IPv4-in-IPv6. Complexity: time O(p), Omega(1), no
+// input-independent tight Theta bound; auxiliary space O(1), Omega(1), tight
+// Theta(1); p is the fixed denied-prefix table length.
+func isPublicAddress(ip netip.Addr) bool {
+	if !ip.IsValid() {
+		return false
+	}
+	ip = ip.Unmap()
+	if !ip.IsGlobalUnicast() {
+		return false
+	}
+	for _, prefix := range deniedPrefixes {
+		if prefix.Contains(ip) {
+			return false
+		}
+	}
+	return true
+}
+
+// canonicalPort validates a dial target and returns its host and fixed port.
+// Complexity: time and auxiliary space O(n), Omega(n), tight Theta(n); n is
+// address bytes, delegated to net.SplitHostPort.
+func canonicalPort(address string) (string, string, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil || port != strconv.Itoa(443) {
+		return "", "", fmt.Errorf("%w: unexpected dial address", ErrDestination)
+	}
+	return host, port, nil
+}
