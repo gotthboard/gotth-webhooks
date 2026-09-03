@@ -21,15 +21,12 @@ func TestNewAndProductionTransportPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	transport, ok := d.client.Transport.(*http.Transport)
+	transport, ok := d.transport.(*http.Transport)
 	if !ok {
-		t.Fatalf("transport type = %T", d.client.Transport)
+		t.Fatalf("transport type = %T", d.transport)
 	}
-	if transport.Proxy != nil || transport.DialContext == nil || transport.MaxResponseHeaderBytes != 64<<10 || transport.TLSClientConfig.MinVersion != 0x0303 {
+	if transport.Proxy != nil || transport.DialContext == nil || transport.MaxResponseHeaderBytes != maxResponseHeaderBytes || transport.TLSClientConfig.MinVersion != 0x0303 {
 		t.Fatalf("unsafe transport policy: %+v", transport)
-	}
-	if err := d.client.CheckRedirect(nil, nil); !errors.Is(err, http.ErrUseLastResponse) {
-		t.Fatalf("redirect policy = %v", err)
 	}
 }
 
@@ -67,9 +64,11 @@ func TestValidateMessageBoundaries(t *testing.T) {
 		}
 	}
 	msg := validMessage()
-	msg.Body = make([]byte, MaxPayloadBytes+1)
-	if _, err := validateMessage(msg); !errors.Is(err, ErrInvalid) {
-		t.Fatalf("oversize error = %v", err)
+	for _, size := range []int{MaxPayloadBytes + 1, MaxPayloadBytes * 4} {
+		msg.Body = make([]byte, size)
+		if _, err := validateMessage(msg); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("oversize %d error = %v", size, err)
+		}
 	}
 	for _, mutate := range []func(*Message){
 		func(m *Message) { m.DeliveryID = "bad id" },
@@ -90,6 +89,114 @@ func TestValidateMessageBoundaries(t *testing.T) {
 	got, err := validateMessage(msg)
 	if err != nil || got.contentType != "application/json; charset=UTF-8" {
 		t.Fatalf("canonical content type=%q error=%v", got.contentType, err)
+	}
+}
+
+func TestConfigurationLimitBoundaries(t *testing.T) {
+	t.Parallel()
+
+	base := func() Config {
+		return Config{
+			Secret:         Secret{KeyID: "key", Value: make([]byte, minSecretBytes)},
+			Recorder:       discardRecorder{},
+			Retry:          RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond},
+			AttemptTimeout: 100 * time.Millisecond,
+			ReceiptTimeout: 100 * time.Millisecond,
+		}
+	}
+	for _, size := range []int{minSecretBytes, maxSecretBytes} {
+		cfg := base()
+		cfg.Secret.Value = make([]byte, size)
+		if _, err := validateConfig(cfg); err != nil {
+			t.Errorf("secret size %d: %v", size, err)
+		}
+	}
+	for _, size := range []int{minSecretBytes - 1, maxSecretBytes + 1, maxSecretBytes * 4} {
+		cfg := base()
+		cfg.Secret.Value = make([]byte, size)
+		if _, err := validateConfig(cfg); !errors.Is(err, ErrInvalid) {
+			t.Errorf("invalid secret size %d: %v", size, err)
+		}
+	}
+	for _, attempts := range []int{1, 10} {
+		cfg := base()
+		cfg.Retry.MaxAttempts = attempts
+		if _, err := validateConfig(cfg); err != nil {
+			t.Errorf("attempts %d: %v", attempts, err)
+		}
+	}
+	for _, attempts := range []int{-1, 0, 11, 100} {
+		cfg := base()
+		cfg.Retry.MaxAttempts = attempts
+		if _, err := validateConfig(cfg); !errors.Is(err, ErrInvalid) {
+			t.Errorf("invalid attempts %d: %v", attempts, err)
+		}
+	}
+	for _, timeout := range []time.Duration{100 * time.Millisecond, 2 * time.Minute} {
+		cfg := base()
+		cfg.AttemptTimeout = timeout
+		if _, err := validateConfig(cfg); err != nil {
+			t.Errorf("attempt timeout %s: %v", timeout, err)
+		}
+	}
+	for _, timeout := range []time.Duration{100*time.Millisecond - 1, 2*time.Minute + 1, 10 * time.Minute} {
+		cfg := base()
+		cfg.AttemptTimeout = timeout
+		if _, err := validateConfig(cfg); !errors.Is(err, ErrInvalid) {
+			t.Errorf("invalid attempt timeout %s: %v", timeout, err)
+		}
+	}
+	for _, timeout := range []time.Duration{100 * time.Millisecond, 30 * time.Second} {
+		cfg := base()
+		cfg.ReceiptTimeout = timeout
+		if _, err := validateConfig(cfg); err != nil {
+			t.Errorf("receipt timeout %s: %v", timeout, err)
+		}
+	}
+	for _, timeout := range []time.Duration{100*time.Millisecond - 1, 30*time.Second + 1, 5 * time.Minute} {
+		cfg := base()
+		cfg.ReceiptTimeout = timeout
+		if _, err := validateConfig(cfg); !errors.Is(err, ErrInvalid) {
+			t.Errorf("invalid receipt timeout %s: %v", timeout, err)
+		}
+	}
+	for _, retry := range []RetryPolicy{
+		{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond},
+		{MaxAttempts: 10, InitialDelay: time.Minute, MaxDelay: time.Minute},
+	} {
+		cfg := base()
+		cfg.Retry = retry
+		if _, err := validateConfig(cfg); err != nil {
+			t.Errorf("retry %+v: %v", retry, err)
+		}
+	}
+	for _, retry := range []RetryPolicy{
+		{MaxAttempts: 1, InitialDelay: time.Millisecond - 1, MaxDelay: time.Millisecond},
+		{MaxAttempts: 1, InitialDelay: time.Second, MaxDelay: time.Second - 1},
+		{MaxAttempts: 1, InitialDelay: time.Second, MaxDelay: time.Minute + 1},
+		{MaxAttempts: 1, InitialDelay: time.Second, MaxDelay: 10 * time.Minute},
+	} {
+		cfg := base()
+		cfg.Retry = retry
+		if _, err := validateConfig(cfg); !errors.Is(err, ErrInvalid) {
+			t.Errorf("invalid retry %+v: %v", retry, err)
+		}
+	}
+}
+
+func TestContentTypeLengthBoundaries(t *testing.T) {
+	t.Parallel()
+
+	validOfSize := func(size int) string { return "application/" + strings.Repeat("a", size-len("application/")) }
+	for _, size := range []int{maxContentType - 1, maxContentType} {
+		if got, err := canonicalContentType(validOfSize(size)); err != nil || len(got) != size {
+			t.Errorf("content type size %d got=%d error=%v", size, len(got), err)
+		}
+	}
+	for _, size := range []int{maxContentType + 1, maxContentType * 4} {
+		if _, err := canonicalContentType(validOfSize(size)); !errors.Is(err, ErrInvalid) {
+			t.Errorf("invalid content type size %d error=%v", size, err)
+		}
 	}
 }
 
@@ -119,6 +226,9 @@ func TestRetryDelayAndRetryAfterForms(t *testing.T) {
 		{4, "", 5 * time.Second},
 		{1, "3", 3 * time.Second},
 		{1, "3600", 5 * time.Second},
+		{1, "+5", time.Second},
+		{1, "9223372036854775807", 5 * time.Second},
+		{1, strings.Repeat("9", 1000), 5 * time.Second},
 		{1, "-1", time.Second},
 		{1, "garbage", time.Second},
 		{1, now.Add(4 * time.Second).Format(http.TimeFormat), 4 * time.Second},
@@ -127,6 +237,26 @@ func TestRetryDelayAndRetryAfterForms(t *testing.T) {
 	for _, tc := range tests {
 		if got := retryDelay(policy, tc.attempt, tc.header, now); got != tc.want {
 			t.Errorf("attempt=%d header=%q got=%s want=%s", tc.attempt, tc.header, got, tc.want)
+		}
+	}
+}
+
+func TestRetryAfterHeaderBoundAndSaturation(t *testing.T) {
+	t.Parallel()
+
+	now := time.Unix(1_700_000_000, 0).UTC()
+	for _, size := range []int{maxResponseHeaderBytes - 1, maxResponseHeaderBytes} {
+		value := strings.Repeat("9", size)
+		if got, ok := parseRetryAfter(value, now, 1500*time.Millisecond); !ok || got != 1500*time.Millisecond {
+			t.Fatalf("size=%d delay=%s ok=%v", size, got, ok)
+		}
+	}
+	if _, ok := parseRetryAfter(strings.Repeat("9", maxResponseHeaderBytes+1), now, time.Minute); ok {
+		t.Fatal("oversized Retry-After accepted")
+	}
+	for _, value := range []string{"+5", "-1", "1x", "\x805"} {
+		if _, ok := parseRetryAfter(value, now, time.Minute); ok {
+			t.Errorf("invalid delay-seconds %q accepted", value)
 		}
 	}
 }
@@ -198,6 +328,28 @@ func TestDeliverPreflightAndWaitCancellation(t *testing.T) {
 	result, err = d.Deliver(context.Background(), validMessage())
 	if !errors.Is(err, context.Canceled) || result.Attempts != 1 || transport.callCount() != 1 {
 		t.Fatalf("wait cancel result=%+v err=%v calls=%d", result, err, transport.callCount())
+	}
+}
+
+func TestDeliverRejectsInvalidRawQueryBeforeTransport(t *testing.T) {
+	t.Parallel()
+
+	transport := &scriptedTransport{}
+	recorder := &memoryRecorder{}
+	d := testDispatcher(t, recorder, transport, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+	for _, endpoint := range []string{
+		"https://example.com/hook?q=raw space",
+		"https://example.com/hook?q=%zz",
+		"https://example.com/hook?q=raw[bracket]",
+	} {
+		msg := validMessage()
+		msg.Endpoint = endpoint
+		if result, err := d.Deliver(context.Background(), msg); !errors.Is(err, ErrInvalid) || result.Attempts != 0 {
+			t.Errorf("endpoint=%q result=%+v error=%v", endpoint, result, err)
+		}
+	}
+	if transport.callCount() != 0 || len(recorder.snapshot()) != 0 {
+		t.Fatalf("invalid queries reached side effects: calls=%d receipts=%d", transport.callCount(), len(recorder.snapshot()))
 	}
 }
 

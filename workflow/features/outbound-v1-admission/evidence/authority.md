@@ -11,8 +11,14 @@ Design authorities read before implementation:
 - RFC 3986 SHA-256: `3102dae4b68cebe40337730312fcb612297b8928547267e8b3d1ee6002b2d683`.
 - RFC 9110 SHA-256: `21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a`.
 - RFC 6585 SHA-256: `f6d55d1b491cd515c35827cf9181753b23b2a68c4df14e56d83dc445b3876e58`.
+- IANA IPv4 Special-Purpose Address Registry, updated 2025-10-09 and fetched
+  read-only 2026-09-03: SHA-256
+  `cf24e11f41b7d42c68debe2d18b97cac815084ec413ebb3b244f704028a16f20`.
+- IANA IPv6 Special-Purpose Address Registry, updated 2025-10-09 and fetched
+  read-only 2026-09-03: SHA-256
+  `c17f4380ba84fb2160dae82ebfd8bd155a5853cfab624ed3a9fd251638a8be02`.
 
-Raw RFC text is retained as task scratch under
+Raw RFC and IANA registry snapshots are retained as task scratch under
 `/tmp/gotth-webhooks-authority`; the runtime boundary records consequential
 conclusions.
 

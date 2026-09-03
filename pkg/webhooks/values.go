@@ -38,7 +38,12 @@ type endpoint struct {
 	canonical string
 }
 
-var deniedPrefixes = []netip.Prefix{
+// ianaSpecialPurposePrefixes is the compact, encompassing-prefix form of every
+// allocation in the IANA IPv4 and IPv6 Special-Purpose Address Registries,
+// both last updated 2025-10-09. The policy rejects every registry allocation,
+// including entries whose registry Global flag is true. See the pinned source
+// hashes in workflow/features/outbound-v1-admission/evidence/authority.md.
+var ianaSpecialPurposePrefixes = []netip.Prefix{
 	netip.MustParsePrefix("0.0.0.0/8"),
 	netip.MustParsePrefix("10.0.0.0/8"),
 	netip.MustParsePrefix("100.64.0.0/10"),
@@ -47,26 +52,33 @@ var deniedPrefixes = []netip.Prefix{
 	netip.MustParsePrefix("172.16.0.0/12"),
 	netip.MustParsePrefix("192.0.0.0/24"),
 	netip.MustParsePrefix("192.0.2.0/24"),
+	netip.MustParsePrefix("192.31.196.0/24"),
+	netip.MustParsePrefix("192.52.193.0/24"),
 	netip.MustParsePrefix("192.88.99.0/24"),
 	netip.MustParsePrefix("192.168.0.0/16"),
+	netip.MustParsePrefix("192.175.48.0/24"),
 	netip.MustParsePrefix("198.18.0.0/15"),
 	netip.MustParsePrefix("198.51.100.0/24"),
 	netip.MustParsePrefix("203.0.113.0/24"),
-	netip.MustParsePrefix("224.0.0.0/4"),
 	netip.MustParsePrefix("240.0.0.0/4"),
 	netip.MustParsePrefix("::/128"),
 	netip.MustParsePrefix("::1/128"),
+	netip.MustParsePrefix("::ffff:0:0/96"),
 	netip.MustParsePrefix("64:ff9b::/96"),
 	netip.MustParsePrefix("64:ff9b:1::/48"),
 	netip.MustParsePrefix("100::/64"),
+	netip.MustParsePrefix("100:0:0:1::/64"),
 	netip.MustParsePrefix("2001::/23"),
 	netip.MustParsePrefix("2001:db8::/32"),
 	netip.MustParsePrefix("2002::/16"),
+	netip.MustParsePrefix("2620:4f:8000::/48"),
+	netip.MustParsePrefix("3fff::/20"),
+	netip.MustParsePrefix("5f00::/16"),
 	netip.MustParsePrefix("fc00::/7"),
 	netip.MustParsePrefix("fe80::/10"),
-	netip.MustParsePrefix("fec0::/10"),
-	netip.MustParsePrefix("ff00::/8"),
 }
+
+var allocatedGlobalIPv6 = netip.MustParsePrefix("2000::/3")
 
 // NewDeliveryID returns a 192-bit CSPRNG-backed, base64url delivery identity.
 // Complexity: time O(n), Omega(n), tight Theta(n); auxiliary space O(n),
@@ -243,6 +255,9 @@ func parseEndpoint(raw string) (endpoint, error) {
 		authority = "[" + host + "]"
 	}
 	authority += ":443"
+	if !validRawQuery(u.RawQuery) {
+		return endpoint{}, fmt.Errorf("%w: invalid endpoint query", ErrInvalid)
+	}
 	canonical := "https://" + authority + path
 	if u.ForceQuery || u.RawQuery != "" {
 		canonical += "?" + u.RawQuery
@@ -252,6 +267,42 @@ func parseEndpoint(raw string) (endpoint, error) {
 		return endpoint{}, fmt.Errorf("%w: canonical endpoint", ErrInvalid)
 	}
 	return endpoint{url: parsed, canonical: canonical}, nil
+}
+
+// validRawQuery accepts RFC 3986 query bytes exactly as supplied. It preserves
+// order and escape spelling while rejecting malformed percent triplets and
+// bytes outside pchar / "/" / "?". Complexity: time O(n), Omega(1), no
+// input-independent tight Theta bound; auxiliary space O(1), Omega(1), tight
+// Theta(1); n is raw-query bytes.
+func validRawQuery(raw string) bool {
+	for i := 0; i < len(raw); i++ {
+		c := raw[i]
+		if c == '%' {
+			if i+2 >= len(raw) || !isHex(raw[i+1]) || !isHex(raw[i+2]) {
+				return false
+			}
+			i += 2
+			continue
+		}
+		if !isQueryByte(c) {
+			return false
+		}
+	}
+	return true
+}
+
+// isHex classifies one byte in constant time and space.
+func isHex(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+}
+
+// isQueryByte classifies one byte against the fixed RFC 3986 query alphabet in
+// constant time and space.
+func isQueryByte(c byte) bool {
+	if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
+		return true
+	}
+	return strings.ContainsRune("-._~!$&'()*+,;=:@/?", rune(c))
 }
 
 // validASCIIHost validates an IP literal or an RFC-compatible conservative
@@ -279,8 +330,9 @@ func validASCIIHost(host string) bool {
 	return true
 }
 
-// isPublicAddress rejects explicitly enumerated special-purpose address
-// prefixes after unmapping IPv4-in-IPv6. Complexity: time O(p), Omega(1), no
+// isPublicAddress admits only global unicast addresses outside every pinned
+// IANA special-purpose allocation. IPv6 must also be in IANA's allocated
+// 2000::/3 global-unicast block. Complexity: time O(p), Omega(1), no
 // input-independent tight Theta bound; auxiliary space O(1), Omega(1), tight
 // Theta(1); p is the fixed denied-prefix table length.
 func isPublicAddress(ip netip.Addr) bool {
@@ -291,7 +343,10 @@ func isPublicAddress(ip netip.Addr) bool {
 	if !ip.IsGlobalUnicast() {
 		return false
 	}
-	for _, prefix := range deniedPrefixes {
+	if ip.Is6() && !allocatedGlobalIPv6.Contains(ip) {
+		return false
+	}
+	for _, prefix := range ianaSpecialPurposePrefixes {
 		if prefix.Contains(ip) {
 			return false
 		}

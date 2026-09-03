@@ -3,10 +3,13 @@ package webhooks
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/netip"
+	"syscall"
 	"time"
 )
 
@@ -24,6 +27,11 @@ type safeDialer struct {
 	resolver resolver
 	dialer   dialer
 }
+
+type retryableTransportError struct{ cause error }
+
+func (e *retryableTransportError) Error() string { return "retryable transport failure" }
+func (e *retryableTransportError) Unwrap() error { return e.cause }
 
 // DialContext resolves a hostname, rejects an entire unsafe or oversized
 // answer, and passes only validated numeric addresses to the underlying
@@ -46,6 +54,10 @@ func (d safeDialer) DialContext(ctx context.Context, network, address string) (n
 	} else {
 		addresses, err = d.resolver.LookupNetIP(ctx, "ip", host)
 		if err != nil {
+			var netErr net.Error
+			if errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary()) {
+				return nil, &retryableTransportError{cause: err}
+			}
 			return nil, fmt.Errorf("DNS lookup failed: %w", err)
 		}
 	}
@@ -69,13 +81,14 @@ func (d safeDialer) DialContext(ctx context.Context, network, address string) (n
 		}
 		lastErr = dialErr
 	}
-	return nil, fmt.Errorf("dial validated destination: %w", lastErr)
+	return nil, &retryableTransportError{cause: lastErr}
 }
 
-// newHTTPClient constructs the production-owned no-proxy, no-redirect HTTPS
-// client. Complexity: time and auxiliary space O(1), Omega(1), tight Theta(1);
+// newHTTPTransport constructs the production-owned no-proxy HTTPS transport.
+// Dispatcher invokes RoundTrip exactly once per attempt, so redirect handling
+// is never entered. Complexity: time and auxiliary space O(1), Omega(1), tight Theta(1);
 // network costs occur only during later requests.
-func newHTTPClient(attemptTimeout time.Duration) *http.Client {
+func newHTTPTransport(attemptTimeout time.Duration) *http.Transport {
 	baseDialer := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}
 	checked := safeDialer{resolver: net.DefaultResolver, dialer: baseDialer}
 	transport := &http.Transport{
@@ -89,14 +102,60 @@ func newHTTPClient(attemptTimeout time.Duration) *http.Client {
 		TLSHandshakeTimeout:    10 * time.Second,
 		ResponseHeaderTimeout:  attemptTimeout,
 		ExpectContinueTimeout:  time.Second,
-		MaxResponseHeaderBytes: 64 << 10,
+		MaxResponseHeaderBytes: maxResponseHeaderBytes,
 		TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12},
 	}
-	return &http.Client{
-		Transport: transport,
-		Timeout:   attemptTimeout,
-		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
+	return transport
+}
+
+// isRetryableTransportFailure is an allowlist, not a catch-all. Production
+// safe-dial failures, timeouts, connection loss, and truncated connections can
+// be transient. Unknown errors and deterministic TLS/HTTP protocol failures
+// are permanent. Complexity: time and auxiliary space O(1), Omega(1), tight
+// Theta(1), excluding delegated errors.Is/As chain traversal.
+func isRetryableTransportFailure(err error) bool {
+	var marked *retryableTransportError
+	if errors.As(err, &marked) {
+		return true
 	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, net.ErrClosed) {
+		return true
+	}
+	for _, transient := range []error{
+		syscall.ECONNABORTED,
+		syscall.ECONNREFUSED,
+		syscall.ECONNRESET,
+		syscall.EHOSTDOWN,
+		syscall.EHOSTUNREACH,
+		syscall.ENETDOWN,
+		syscall.ENETUNREACH,
+		syscall.EPIPE,
+		syscall.ETIMEDOUT,
+	} {
+		if errors.Is(err, transient) {
+			return true
+		}
+	}
+	return false
+}
+
+// isDeterministicTransportFailure identifies exported TLS and HTTP protocol
+// failures that cannot improve merely by repeating the same request. Unknown
+// errors are also permanent, but keeping these cases explicit prevents a
+// future retry allowlist from swallowing them. Complexity: time and auxiliary
+// space O(1), Omega(1), tight Theta(1), excluding delegated error traversal.
+func isDeterministicTransportFailure(err error) bool {
+	var certificateError *tls.CertificateVerificationError
+	var recordError tls.RecordHeaderError
+	var alertError tls.AlertError
+	var protocolError *http.ProtocolError
+	return errors.As(err, &certificateError) ||
+		errors.As(err, &recordError) ||
+		errors.As(err, &alertError) ||
+		errors.As(err, &protocolError) ||
+		errors.Is(err, http.ErrLineTooLong)
 }

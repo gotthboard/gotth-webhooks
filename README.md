@@ -4,7 +4,9 @@ Consumer-neutral mechanics for bounded, signed outbound webhooks.
 
 > **Distribution:** Forgejo remains canonical development. GitHub is the public
 > clone and future Go/release endpoint after admission. This branch is
-> implemented but unreleased; no tag or compatibility promise exists yet. See
+> an unreleased review candidate; no tag or compatibility promise exists yet.
+> Admission is blocked until one real product consumer supplies requirements
+> and validates the public surface. See
 > [the distribution contract](docs/distribution.md).
 
 ## Boundary
@@ -19,8 +21,8 @@ V1 provides:
 
 - HMAC-SHA-256 signatures binding target, delivery ID, attempt, timestamp,
   event type, content type, key ID, and payload digest;
-- a stable delivery identity and semantics fingerprint for receiver and sender
-  deduplication;
+- a stable delivery identity plus a sensitive derived semantics fingerprint
+  for sender-side conflict detection;
 - HTTPS-only endpoint validation, public-address DNS checks immediately before
   literal-IP dialing, no ambient proxy, and no redirects;
 - explicit bounded retry classification, `Retry-After`, cancellation,
@@ -36,8 +38,10 @@ unrecorded unknown attempt; recovery must not blindly resend it.
 
 ## Installation and compatibility
 
-There is no release to install yet. Do not pin this repository until admission,
-consumer verification, and an exact tag are complete.
+There is no release to install yet. Do not pin this repository until a real
+consumer contract, consumer verification, admission, and an exact tag are
+complete. The local external-module fixture proves compilation only; it is not
+a real consumer or compatibility oracle.
 
 The current candidate module is `github.com/gotthboard/gotth-webhooks`, requires
 Go 1.26.6, uses only the Go standard library, and supports HTTPS port 443. The
@@ -80,11 +84,15 @@ The all-zero retry/timeouts select three attempts, 250 ms initial delay, 10 s
 maximum delay, 15 s attempt timeout, and 5 s receipt timeout. Nonzero policies
 must satisfy the documented bounds in [the implementation spec](docs/implementation-spec.md).
 
-`Deliver` is concurrency-safe for unrelated deliveries. Calls sharing one
+`Deliver` is concurrency-safe for unrelated deliveries, and the dispatcher can
+call one `Recorder` concurrently. Recorder implementations must therefore be
+concurrency-safe. Calls sharing one
 delivery ID must be serialized or leased durably by the consumer, which also
 allocates a monotonically increasing `FirstAttempt` across invocations. On an
-`ErrReceipt`, `Result.LastReceipt` contains the exact non-sensitive record for
-safe store reconciliation without resending. An in-memory map would not protect
+`ErrReceipt`, `Result.LastReceipt` contains the exact record for store
+reconciliation without resending. Its stable fingerprint is sensitive derived
+data that can support guessing and correlation; restrict access to stored
+receipts and never log the fingerprint or whole result. An in-memory map would not protect
 multiple processes or survive a crash, so the library does not fake that
 guarantee.
 
@@ -118,11 +126,15 @@ connection resolves and validates every answer before dialing a numeric public
 address; mixed public/private answers fail closed. Existing validated
 connections may be reused without repeated DNS lookup.
 
+The process check rejects every allocation in the pinned IANA IPv4/IPv6
+Special-Purpose Address Registry snapshot, even entries marked globally
+reachable, and admits IPv6 only from allocated global-unicast `2000::/3`.
 This is defense in depth, not a firewall. A compromised resolver, dialer,
-kernel, route, NAT/service-mesh remap, public destination, or newly allocated
-IANA special prefix can defeat assumptions below this process. Operators must
-enforce independent egress policy. See [architecture](docs/architecture.md) and
-[security policy](SECURITY.md).
+kernel, route, NAT/service-mesh remap, public destination, or new IANA
+allocation after the pinned snapshot can defeat assumptions below this
+process. Operators must enforce independent egress policy. See
+[architecture](docs/architecture.md), [address policy](docs/address-policy.md),
+and [security policy](SECURITY.md).
 
 ## Scope exclusions
 

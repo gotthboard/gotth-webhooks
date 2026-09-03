@@ -47,7 +47,10 @@ appear in receipts or returned errors.
 
 The production constructor owns `http.Transport`; callers cannot inject a
 RoundTripper, dialer, proxy, or TLS bypass. Only HTTPS port 443 is accepted.
-The transport disables proxies and redirects. For each new TCP connection its
+The dispatcher calls the owned transport's `RoundTrip` exactly once per
+attempt. It never invokes `http.Client` redirect processing, so a 3xx response
+is returned for status classification even when `Location` is malformed. The
+transport disables proxies. For each new TCP connection its
 dial hook resolves the hostname, normalizes mapped addresses, rejects the
 entire answer if any address is loopback, private, link-local, multicast,
 unspecified, or in the library's explicit special-purpose prefix table, then
@@ -64,22 +67,31 @@ remapping, a compromised public destination, or an already-established public
 server pivoting at the application layer. Operators must enforce egress policy
 below this library as a second boundary.
 
-The special-purpose prefix table is necessarily a maintained deny list. A new
-IANA reservation can predate a library update. Production network policy must
-therefore remain fail-closed independently of this user-space check.
+The address policy rejects every allocation in the IANA IPv4 and IPv6
+Special-Purpose Address Registries snapshot last updated 2025-10-09, including
+allocations whose registry Global flag is true. IPv6 outside IANA's allocated
+global-unicast `2000::/3` is also rejected. The exact source hashes and compact
+prefix derivation are pinned in [address policy](address-policy.md). A new IANA
+reservation can predate a library update, so production network policy must
+remain fail-closed independently of this user-space check.
 
 ## Delivery and failure model
 
 An HTTP attempt has four terminal classifications: delivered, retryable,
 permanent, or canceled. A 2xx response is delivered. Status 408, 425, 429, and
 5xx are retryable. Other HTTP responses, including every 3xx, are permanent.
-Transport errors are retryable unless the caller or attempt context ended.
+Only explicitly typed transient failures are retryable: deadline timeouts,
+safe-dialer-marked transient lookup/dial failures, selected connection errno
+values, and EOF/truncation. Destination rejection, certificate validation, TLS
+alerts/record failures, HTTP protocol/header-limit failures, and every unknown
+transport error are permanent. Caller cancellation remains canceled.
 
 While the process survives, the library records an attempt result before
 another attempt or return. Recording uses a separate bounded context so caller
 cancellation does not silently erase the receipt. If recording fails, delivery
 stops with an explicit receipt error; `Result.LastReceipt` exposes the exact
-non-sensitive record for reconciliation. A process crash after sending but
+record for reconciliation. Its delivery fingerprint is sensitive derived data
+and must not be logged or exposed broadly. A process crash after sending but
 before recording can leave an unrecorded unknown attempt. No library can
 atomically commit a receiver effect and sender receipt across HTTP. Consumers
 and receivers must use stable identity for durable deduplication and reconcile
@@ -88,7 +100,9 @@ unknown/in-flight work before another send.
 ## Concurrency
 
 Dispatchers contain immutable configuration plus Go's concurrency-safe HTTP
-client and may serve concurrent unrelated deliveries. Two calls with the same
+transport and may serve concurrent unrelated deliveries. The same `Recorder`
+can be called concurrently and must implement synchronization appropriate to
+its store. Two calls with the same
 delivery ID can both send; preventing that requires a consumer-owned durable
 lease or uniqueness mechanism. The consumer also persists and allocates the
 next attempt number across invocations. Hiding a partial in-memory map here

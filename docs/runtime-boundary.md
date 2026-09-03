@@ -12,10 +12,9 @@
 
 ## Authorities read before design
 
-- Go 1.26.6 `http.Client`: redirects are followed by default unless
-  `CheckRedirect` intervenes; `Timeout` includes connection, redirects, and
-  response-body reading; clients and transports are concurrency-safe and
-  transports cache connections.
+- Go 1.26.6 `http.RoundTripper`/`http.Transport`: direct `RoundTrip` executes one
+  transaction and does not process redirects; transports are concurrency-safe
+  and cache connections. Request context bounds transport and body work.
 - Go 1.26.6 `http.Transport.DialContext`: dials may race with connection reuse,
   so address checks belong in the dial function and established validated
   connections may be reused.
@@ -32,13 +31,18 @@
 - RFC 9110 sections 4.2.4, 7.2, 9.2.2, 10.2.3, and 15: userinfo is unsafe,
   fragments are not request-target data, POST is not inherently idempotent,
   `Retry-After` permits date or delay forms, and status semantics are explicit.
+- IANA IPv4 and IPv6 Special-Purpose Address Registries, both updated
+  2025-10-09: every allocation is denied regardless of its `Global` flag; the
+  exact snapshot hashes and compact derivation are in `address-policy.md`.
 
 ## Correctness-relevant limits and oracles
 
-All application limits are fixed in the implementation spec. Tests cover
-limit-1, limit, limit+1, and materially beyond for body, response body, secret,
-token, content type, attempts, timeouts, delays, address answer size, and
-signature mutations where representable.
+All application limits are fixed in the implementation spec. Tests cover the
+applicable accepted endpoints and rejected just-over/materially-over values for
+payload, response body, secret, token, content type, attempt count/number,
+timeouts, retry delays, address-answer size, and Retry-After/header parsing.
+Not every lower boundary is meaningful independently: zero-value configuration
+selects defaults, and MIME grammar rejects values before byte length does.
 
 Completeness oracles are exact request-body SHA-256, captured request-target
 and headers, exact attempt and recorder counts, response byte count including
@@ -46,7 +50,8 @@ the overflow probe, known address-answer cardinality, and listener-observed
 numeric dial targets. A 2xx status without a completely bounded body read is
 not success.
 
-Warnings, redirects, partial response reads, mixed public/private DNS answers,
+Warnings, every 3xx including malformed `Location`, deterministic TLS/protocol/
+header-limit failures, partial response reads, mixed public/private DNS answers,
 missing receipt records, and ambiguous URL forms fail closed. The library
 changes no process-global, resolver-global, session, or environment state, so
 restoration and pooled-session leakage tests are N/A. Connection reuse and the

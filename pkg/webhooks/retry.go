@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -56,30 +55,48 @@ func retryDelay(policy RetryPolicy, attempt int, retryAfter string, now time.Tim
 		}
 		delay *= 2
 	}
-	if parsed, ok := parseRetryAfter(retryAfter, now); ok && parsed > delay {
+	if parsed, ok := parseRetryAfter(retryAfter, now, policy.MaxDelay); ok && parsed > delay {
 		delay = parsed
-		if delay > policy.MaxDelay {
-			delay = policy.MaxDelay
-		}
 	}
 	return delay
 }
 
-// parseRetryAfter parses RFC 9110 delay-seconds or HTTP-date and rejects
-// negative/past values. Complexity: time and auxiliary space inherit integer
-// or HTTP-date parsing over n bytes; O(n), Omega(1), tight Theta not established
-// across both forms; n is header bytes.
-func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
+// parseRetryAfter parses RFC 9110 delay-seconds (ASCII 1*DIGIT) or HTTP-date,
+// rejects values beyond the response-header bound, and saturates valid delays
+// at maxDelay without integer overflow. Complexity: time O(n), Omega(1), no
+// input-independent tight Theta bound; HTTP-date allocation is delegated;
+// n is header bytes and auxiliary space is otherwise O(1).
+func parseRetryAfter(value string, now time.Time, maxDelay time.Duration) (time.Duration, bool) {
+	if len(value) > maxResponseHeaderBytes || maxDelay <= 0 {
+		return 0, false
+	}
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return 0, false
 	}
-	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil {
-		if seconds < 0 {
-			return 0, false
+	digits := true
+	var seconds uint64
+	capSeconds := uint64(maxDelay / time.Second)
+	saturated := false
+	for i := range len(value) {
+		c := value[i]
+		if c < '0' || c > '9' {
+			digits = false
+			break
 		}
-		if seconds > int64(time.Minute/time.Second) {
-			return time.Minute, true
+		if saturated {
+			continue
+		}
+		digit := uint64(c - '0')
+		if seconds > capSeconds/10 || (seconds == capSeconds/10 && digit > capSeconds%10) {
+			saturated = true
+			continue
+		}
+		seconds = seconds*10 + digit
+	}
+	if digits {
+		if saturated {
+			return maxDelay, true
 		}
 		return time.Duration(seconds) * time.Second, true
 	}
@@ -87,7 +104,11 @@ func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
 	if err != nil || !when.After(now) {
 		return 0, false
 	}
-	return when.Sub(now), true
+	delay := when.Sub(now)
+	if delay > maxDelay {
+		return maxDelay, true
+	}
+	return delay, true
 }
 
 // waitContext sleeps without losing cancellation responsiveness. Complexity:

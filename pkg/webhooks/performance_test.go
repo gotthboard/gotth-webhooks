@@ -19,7 +19,7 @@ func BenchmarkDeliver(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			d := newDispatcher(config, dependencies{client: &http.Client{Transport: transport}, now: fixedClock, wait: noWait})
+			d := newDispatcher(config, dependencies{transport: transport, now: fixedClock, wait: noWait})
 			msg := validMessage()
 			msg.Body = make([]byte, size)
 			b.ReportAllocs()
@@ -41,7 +41,7 @@ func BenchmarkDeliver(b *testing.B) {
 		transport := roundTripperFunc(func(*http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(responseBody))}, nil
 		})
-		d := newDispatcher(config, dependencies{client: &http.Client{Transport: transport}, now: fixedClock, wait: noWait})
+		d := newDispatcher(config, dependencies{transport: transport, now: fixedClock, wait: noWait})
 		msg := validMessage()
 		b.ReportAllocs()
 		b.ResetTimer()

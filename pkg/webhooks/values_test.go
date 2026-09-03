@@ -17,6 +17,7 @@ func TestParseEndpoint(t *testing.T) {
 		want string
 	}{
 		{"dns", "https://EXAMPLE.com/hooks/a?b=1", "https://example.com:443/hooks/a?b=1"},
+		{"query order and escapes", "https://example.com/hook?b=2&a=%2F%3f&flag&x=one+two/three?four", "https://example.com:443/hook?b=2&a=%2F%3f&flag&x=one+two/three?four"},
 		{"default port", "https://example.com:443", "https://example.com:443/"},
 		{"ipv6", "https://[2606:4700:4700::1111]/hook", "https://[2606:4700:4700::1111]:443/hook"},
 	}
@@ -47,6 +48,14 @@ func TestParseEndpointRejectsUnsafeForms(t *testing.T) {
 		"https://[::1]/hook",
 		"https://exa_mple.com/hook",
 		"https://example.com/%zz",
+		"https://example.com/hook?q=has space",
+		"https://example.com/hook?q=%",
+		"https://example.com/hook?q=%0",
+		"https://example.com/hook?q=%zz",
+		"https://example.com/hook?q=[bad]",
+		"https://example.com/hook?q=bad\\query",
+		"https://example.com/hook?q=bad\tquery",
+		"https://example.com/hook?q=\x80",
 		"https://example.com/\nnext",
 		"https://example.com/" + strings.Repeat("a", maxEndpointBytes),
 	}
@@ -55,6 +64,67 @@ func TestParseEndpointRejectsUnsafeForms(t *testing.T) {
 			t.Errorf("parseEndpoint(%q) succeeded", raw)
 		}
 	}
+}
+
+func TestIANASpecialPurposeRegistrySnapshot(t *testing.T) {
+	t.Parallel()
+
+	// Compact encompassing prefixes from the IPv4 and IPv6 registries last
+	// updated 2025-10-09. Nested registry allocations are covered by the broad
+	// registry entries 192.0.0.0/24 and 2001::/23.
+	want := []string{
+		"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8",
+		"169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24",
+		"192.31.196.0/24", "192.52.193.0/24", "192.88.99.0/24", "192.168.0.0/16",
+		"192.175.48.0/24", "198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24",
+		"240.0.0.0/4", "::/128", "::1/128", "::ffff:0:0/96", "64:ff9b::/96",
+		"64:ff9b:1::/48", "100::/64", "100:0:0:1::/64", "2001::/23",
+		"2001:db8::/32", "2002::/16", "2620:4f:8000::/48", "3fff::/20",
+		"5f00::/16", "fc00::/7", "fe80::/10",
+	}
+	if len(ianaSpecialPurposePrefixes) != len(want) {
+		t.Fatalf("special prefix count=%d want=%d", len(ianaSpecialPurposePrefixes), len(want))
+	}
+	for i, text := range want {
+		prefix := netip.MustParsePrefix(text).Masked()
+		if got := ianaSpecialPurposePrefixes[i].Masked(); got != prefix {
+			t.Fatalf("special prefix[%d]=%s want=%s", i, got, prefix)
+		}
+		for _, address := range []netip.Addr{prefix.Addr(), lastAddress(prefix)} {
+			if isPublicAddress(address) {
+				t.Errorf("registry boundary %s in %s was accepted", address, prefix)
+			}
+		}
+	}
+}
+
+func TestAllocatedGlobalIPv6Boundary(t *testing.T) {
+	t.Parallel()
+
+	for _, address := range []string{"100:0:0:1::1", "1fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "3fff::1", "4000::", "5f00::1"} {
+		if isPublicAddress(netip.MustParseAddr(address)) {
+			t.Errorf("unallocated or special IPv6 address %s was accepted", address)
+		}
+	}
+	if !isPublicAddress(netip.MustParseAddr("2606:4700:4700::1111")) {
+		t.Fatal("ordinary allocated public IPv6 address was rejected")
+	}
+}
+
+func lastAddress(prefix netip.Prefix) netip.Addr {
+	prefix = prefix.Masked()
+	if prefix.Addr().Is4() {
+		bytes := prefix.Addr().As4()
+		for bit := prefix.Bits(); bit < 32; bit++ {
+			bytes[bit/8] |= 1 << (7 - bit%8)
+		}
+		return netip.AddrFrom4(bytes)
+	}
+	bytes := prefix.Addr().As16()
+	for bit := prefix.Bits(); bit < 128; bit++ {
+		bytes[bit/8] |= 1 << (7 - bit%8)
+	}
+	return netip.AddrFrom16(bytes)
 }
 
 func TestPublicAddressPolicyBoundaries(t *testing.T) {

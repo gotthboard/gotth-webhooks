@@ -2,6 +2,8 @@ package webhooks
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -107,10 +109,10 @@ func TestDeliverPermanentAndRedirectResponsesDoNotRetry(t *testing.T) {
 	}
 }
 
-func TestDeliverExhaustsTransportFailures(t *testing.T) {
+func TestDeliverExhaustsAllowlistedTransportFailures(t *testing.T) {
 	t.Parallel()
 
-	roundTrip := &scriptedTransport{steps: []transportStep{{err: errors.New("broken")}, {err: errors.New("still broken")}}}
+	roundTrip := &scriptedTransport{steps: []transportStep{{err: &retryableTransportError{cause: errors.New("broken")}}, {err: &retryableTransportError{cause: errors.New("still broken")}}}}
 	recorder := &memoryRecorder{}
 	d := testDispatcher(t, recorder, roundTrip, RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
 	result, err := d.Deliver(context.Background(), validMessage())
@@ -121,6 +123,36 @@ func TestDeliverExhaustsTransportFailures(t *testing.T) {
 		if receipt.ErrorCode != ErrorTransport || receipt.StatusCode != 0 {
 			t.Fatalf("receipt = %+v", receipt)
 		}
+	}
+}
+
+func TestDeliverDeterministicTransportFailuresArePermanent(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{"unknown", errors.New("unknown transport failure")},
+		{"certificate", &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}},
+		{"TLS record", tls.RecordHeaderError{Msg: "not TLS"}},
+		{"protocol", &http.ProtocolError{ErrorString: "malformed response"}},
+		{"header limit", http.ErrHeaderTooLong},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			transport := &scriptedTransport{steps: []transportStep{{err: tc.err}, {status: http.StatusNoContent}}}
+			recorder := &memoryRecorder{}
+			d := testDispatcher(t, recorder, transport, RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+			result, err := d.Deliver(context.Background(), validMessage())
+			if !errors.Is(err, ErrPermanent) || result.Attempts != 1 || result.Outcome != OutcomePermanent || transport.callCount() != 1 {
+				t.Fatalf("result=%+v error=%v calls=%d", result, err, transport.callCount())
+			}
+			if receipts := recorder.snapshot(); len(receipts) != 1 || receipts[0].ErrorCode != ErrorTransport {
+				t.Fatalf("receipts=%+v", receipts)
+			}
+		})
 	}
 }
 
@@ -135,10 +167,10 @@ func TestDeliverExhaustsRetryableHTTPWithoutTransportCause(t *testing.T) {
 	}
 }
 
-func TestDeliverResponseReadFailureIsRetryable(t *testing.T) {
+func TestDeliverTruncatedResponseIsRetryable(t *testing.T) {
 	t.Parallel()
 
-	want := errors.New("response stream failed")
+	want := io.ErrUnexpectedEOF
 	roundTrip := roundTripperFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: &trackedBody{Reader: errorReader{err: want}}}, nil
 	})
@@ -146,6 +178,21 @@ func TestDeliverResponseReadFailureIsRetryable(t *testing.T) {
 	d := testDispatcher(t, recorder, roundTrip, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
 	result, err := d.Deliver(context.Background(), validMessage())
 	if !errors.Is(err, ErrExhausted) || strings.Contains(err.Error(), want.Error()) || result.Outcome != OutcomeRetryable {
+		t.Fatalf("result=%+v error=%v", result, err)
+	}
+}
+
+func TestDeliverResponseProtocolFailureIsPermanent(t *testing.T) {
+	t.Parallel()
+
+	want := &http.ProtocolError{ErrorString: "invalid chunk framing"}
+	roundTrip := roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: &trackedBody{Reader: errorReader{err: want}}}, nil
+	})
+	recorder := &memoryRecorder{}
+	d := testDispatcher(t, recorder, roundTrip, RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+	result, err := d.Deliver(context.Background(), validMessage())
+	if !errors.Is(err, ErrPermanent) || result.Attempts != 1 || result.Outcome != OutcomePermanent {
 		t.Fatalf("result=%+v error=%v", result, err)
 	}
 }
@@ -298,7 +345,7 @@ func TestDeliverCopiesPayloadAndSigningSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := newDispatcher(validated, dependencies{client: &http.Client{Transport: roundTrip}, now: fixedClock, wait: noWait})
+	d := newDispatcher(validated, dependencies{transport: roundTrip, now: fixedClock, wait: noWait})
 	msg := validMessage()
 	msg.Body = body
 	if _, err := d.Deliver(context.Background(), msg); err != nil {
@@ -330,6 +377,30 @@ func TestDispatcherConcurrentUse(t *testing.T) {
 	}
 }
 
+func TestDispatcherCallsRecorderConcurrently(t *testing.T) {
+	t.Parallel()
+
+	recorder := newOverlapRecorder(2)
+	transport := roundTripperFunc(func(_ *http.Request) (*http.Response, error) { return response(http.StatusNoContent, "", ""), nil })
+	d := testDispatcher(t, recorder, transport, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+	var wg sync.WaitGroup
+	for i := range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			msg := validMessage()
+			msg.DeliveryID = "overlap-" + strconv.Itoa(i)
+			if _, err := d.Deliver(context.Background(), msg); err != nil {
+				t.Errorf("deliver: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	if recorder.maximum() < 2 {
+		t.Fatalf("maximum concurrent Record calls=%d", recorder.maximum())
+	}
+}
+
 func validMessage() Message {
 	return Message{Endpoint: "https://example.com/hook", DeliveryID: "delivery-1", EventType: "event.one", ContentType: "application/json", Body: []byte("body")}
 }
@@ -349,7 +420,7 @@ func testDispatcherWithTimeout(t *testing.T, recorder Recorder, transport http.R
 	if err != nil {
 		t.Fatal(err)
 	}
-	return newDispatcher(validated, dependencies{client: &http.Client{Transport: transport}, now: fixedClock, wait: wait})
+	return newDispatcher(validated, dependencies{transport: transport, now: fixedClock, wait: wait})
 }
 
 type memoryRecorder struct {
@@ -357,6 +428,46 @@ type memoryRecorder struct {
 	receipts           []Receipt
 	err                error
 	requireLiveContext bool
+}
+
+type overlapRecorder struct {
+	mu      sync.Mutex
+	active  int
+	max     int
+	want    int
+	reached chan struct{}
+	once    sync.Once
+}
+
+func newOverlapRecorder(want int) *overlapRecorder {
+	return &overlapRecorder{want: want, reached: make(chan struct{})}
+}
+
+func (r *overlapRecorder) Record(ctx context.Context, _ Receipt) error {
+	r.mu.Lock()
+	r.active++
+	if r.active > r.max {
+		r.max = r.active
+	}
+	if r.active == r.want {
+		r.once.Do(func() { close(r.reached) })
+	}
+	r.mu.Unlock()
+	select {
+	case <-r.reached:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	r.mu.Lock()
+	r.active--
+	r.mu.Unlock()
+	return nil
+}
+
+func (r *overlapRecorder) maximum() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.max
 }
 
 func (r *memoryRecorder) Record(ctx context.Context, receipt Receipt) error {

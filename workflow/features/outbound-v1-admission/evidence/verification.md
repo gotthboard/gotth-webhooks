@@ -1,4 +1,9 @@
-# Local verification evidence
+# Historical and pending verification evidence
+
+Independent orchestrator review rejected exact commit
+`a5a3b1060989f220bf97c4733a3248ac4c7e9130`; the evidence below is historical
+and does not support admission. Exact repair-source evidence will replace this
+section only after all gates run uncached against the source-fix object.
 
 Candidate and exact-source commands:
 
@@ -21,11 +26,10 @@ Candidate and exact-source commands:
 - Benchmark command and raw hash are in `docs/performance.md`.
 
 - Detached clean clone of pre-repair commit `338b885` passed `make verify`;
-  final repair/evidence commit clean-clone verification is recorded after the
-  final commit.
+  the rejected candidate did not have committed exact-final evidence.
 - Performance exact-source artifact and uncontrolled-host variance are in
   `docs/performance.md`.
 
-The internal cold Judge pass failed four concrete boundaries; the repair source
-passes a fresh review. Independent orchestrator review remains required. This
-evidence does not mark the feature done.
+The earlier internal cold Judge missed the independent findings and is
+superseded for admission purposes. This evidence does not mark the feature
+done.

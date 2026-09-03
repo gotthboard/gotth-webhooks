@@ -73,7 +73,7 @@ Risks / non-goals:
 
 ### 2026-09-03 11:27 CDT — Record local verification handoff
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `a5a3b1060989f220bf97c4733a3248ac4c7e9130`
 
 Affected files:
 
@@ -91,7 +91,9 @@ Verification:
 
 Risks / non-goals:
 
-- Evidence does not create a release or compatibility promise.
+- Evidence does not create a release or compatibility promise. Independent
+  review later rejected this candidate; the rejection is not superseded merely
+  by local source repairs.
 
 ### 2026-09-03 00:42 CDT — Establish GitHub public distribution
 

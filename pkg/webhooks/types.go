@@ -11,11 +11,12 @@ const (
 	// MaxResponseBytes is the largest response body consumed.
 	MaxResponseBytes = 64 << 10
 
-	maxEndpointBytes = 2048
-	maxTokenBytes    = 128
-	maxContentType   = 256
-	minSecretBytes   = 32
-	maxSecretBytes   = 1024
+	maxEndpointBytes       = 2048
+	maxTokenBytes          = 128
+	maxContentType         = 256
+	maxResponseHeaderBytes = 64 << 10
+	minSecretBytes         = 32
+	maxSecretBytes         = 1024
 
 	defaultMaxAttempts    = 3
 	defaultAttemptTimeout = 15 * time.Second
@@ -95,7 +96,8 @@ const (
 
 // Receipt is the minimal durable audit record for one actual HTTP attempt. It
 // intentionally excludes endpoint, event, payload, key, signature, response
-// body, and raw error text.
+// body, and raw error text. DeliveryFingerprint is sensitive derived data:
+// callers must restrict its storage and must not log it.
 type Receipt struct {
 	DeliveryID          string
 	DeliveryFingerprint [32]byte
@@ -109,8 +111,9 @@ type Receipt struct {
 	ErrorCode           ErrorCode
 }
 
-// Recorder persists attempt receipts. Implementations must make an exact
-// repeated (delivery ID, attempt) record idempotent and reject a conflict.
+// Recorder persists attempt receipts. Implementations must be safe for
+// concurrent Record calls, make an exact repeated (delivery ID, attempt)
+// record idempotent, and reject a conflict.
 type Recorder interface {
 	Record(context.Context, Receipt) error
 }
@@ -125,6 +128,7 @@ type Result struct {
 	StatusCode  int
 	Outcome     Outcome
 	// LastReceipt lets a caller reconcile or replay an exact Record operation
-	// after ErrReceipt without sending the HTTP request again.
+	// after ErrReceipt without sending the HTTP request again. Its
+	// DeliveryFingerprint is sensitive derived data and must not be logged.
 	LastReceipt Receipt
 }

@@ -9,18 +9,18 @@ import (
 )
 
 type dependencies struct {
-	client *http.Client
-	now    func() time.Time
-	wait   func(context.Context, time.Duration) error
+	transport http.RoundTripper
+	now       func() time.Time
+	wait      func(context.Context, time.Duration) error
 }
 
 // Dispatcher is an immutable, concurrency-safe outbound sender. Calls sharing
 // a delivery ID still require consumer-owned durable coordination.
 type Dispatcher struct {
-	config validatedConfig
-	client *http.Client
-	now    func() time.Time
-	wait   func(context.Context, time.Duration) error
+	config    validatedConfig
+	transport http.RoundTripper
+	now       func() time.Time
+	wait      func(context.Context, time.Duration) error
 }
 
 // New validates configuration, copies the secret, and constructs an owned
@@ -32,9 +32,9 @@ func New(cfg Config) (*Dispatcher, error) {
 		return nil, err
 	}
 	return newDispatcher(validated, dependencies{
-		client: newHTTPClient(validated.attemptTimeout),
-		now:    time.Now,
-		wait:   waitContext,
+		transport: newHTTPTransport(validated.attemptTimeout),
+		now:       time.Now,
+		wait:      waitContext,
 	}), nil
 }
 
@@ -42,7 +42,7 @@ func New(cfg Config) (*Dispatcher, error) {
 // package-internal test dependencies. Complexity: time and auxiliary space
 // O(1), Omega(1), tight Theta(1).
 func newDispatcher(config validatedConfig, deps dependencies) *Dispatcher {
-	return &Dispatcher{config: config, client: deps.client, now: deps.now, wait: deps.wait}
+	return &Dispatcher{config: config, transport: deps.transport, now: deps.now, wait: deps.wait}
 }
 
 // Deliver performs bounded signed attempts and records each actual attempt
@@ -113,9 +113,11 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 
 // attempt executes one request and returns only bounded classification data.
 // Complexity: CPU time O(b+r), Omega(b), no input-independent tight Theta
-// bound; auxiliary space O(b+r), Omega(b), no single tight bound; b is request
-// bytes and r is consumed response bytes capped at MaxResponseBytes+1;
-// transport latency is delegated and bounded by attemptTimeout.
+// bound. Auxiliary space is O(m+r+T(b)), Omega(1), with no single tight bound:
+// m is request metadata, r is the constant-bounded response copy buffer, and
+// T(b) is any request buffering delegated to RoundTripper.
+// The request body is already owned and is hashed/read without another body
+// copy. Transport latency is delegated and bounded by attemptTimeout.
 func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attempt int) (Receipt, string, error) {
 	started := d.now().UTC()
 	receipt := Receipt{DeliveryID: msg.deliveryID, DeliveryFingerprint: msg.fingerprint, Attempt: attempt, RequestTimestamp: started.Unix(), StartedAt: started}
@@ -128,23 +130,13 @@ func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attem
 		receipt.ErrorCode = ErrorTransport
 		return receipt, "", err
 	}
-	resp, err := d.client.Do(req)
+	resp, err := d.transport.RoundTrip(req)
 	if err != nil {
-		receipt.FinishedAt = d.now().UTC()
-		if parent.Err() != nil {
-			receipt.Outcome = OutcomeCanceled
-			receipt.ErrorCode = ErrorCanceled
-		} else if errors.Is(err, ErrDestination) {
-			receipt.Outcome = OutcomePermanent
-			receipt.ErrorCode = ErrorDestination
-		} else {
-			receipt.Outcome = OutcomeRetryable
-			if errors.Is(attemptCtx.Err(), context.DeadlineExceeded) {
-				receipt.ErrorCode = ErrorTimeout
-			} else {
-				receipt.ErrorCode = ErrorTransport
-			}
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
 		}
+		receipt.FinishedAt = d.now().UTC()
+		receipt.Outcome, receipt.ErrorCode = classifyAttemptFailure(parent, attemptCtx, err)
 		return receipt, "", err
 	}
 	receipt.StatusCode = resp.StatusCode
@@ -157,17 +149,7 @@ func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attem
 		return receipt, retryAfter, err
 	}
 	if err != nil {
-		if parent.Err() != nil {
-			receipt.Outcome = OutcomeCanceled
-			receipt.ErrorCode = ErrorCanceled
-		} else {
-			receipt.Outcome = OutcomeRetryable
-			if errors.Is(attemptCtx.Err(), context.DeadlineExceeded) {
-				receipt.ErrorCode = ErrorTimeout
-			} else {
-				receipt.ErrorCode = ErrorTransport
-			}
-		}
+		receipt.Outcome, receipt.ErrorCode = classifyAttemptFailure(parent, attemptCtx, err)
 		return receipt, retryAfter, err
 	}
 	receipt.Outcome = classifyStatus(resp.StatusCode)
@@ -175,6 +157,29 @@ func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attem
 		receipt.ErrorCode = ErrorHTTPStatus
 	}
 	return receipt, retryAfter, nil
+}
+
+// classifyAttemptFailure applies cancellation, deterministic-failure, and
+// transient allowlist precedence. Complexity: time O(w), Omega(1), no tight
+// bound; auxiliary space O(1), Omega(1), tight Theta(1); w is wrapped-error
+// depth delegated to errors.Is/As.
+func classifyAttemptFailure(parent, attemptCtx context.Context, err error) (Outcome, ErrorCode) {
+	if parent.Err() != nil {
+		return OutcomeCanceled, ErrorCanceled
+	}
+	if errors.Is(attemptCtx.Err(), context.DeadlineExceeded) {
+		return OutcomeRetryable, ErrorTimeout
+	}
+	if errors.Is(err, ErrDestination) {
+		return OutcomePermanent, ErrorDestination
+	}
+	if isDeterministicTransportFailure(err) {
+		return OutcomePermanent, ErrorTransport
+	}
+	if isRetryableTransportFailure(err) {
+		return OutcomeRetryable, ErrorTransport
+	}
+	return OutcomePermanent, ErrorTransport
 }
 
 // record attempts durable receipt persistence with caller values preserved but

@@ -11,7 +11,7 @@ func TestBuildRequestConformanceVector(t *testing.T) {
 	t.Parallel()
 
 	msg, err := validateMessage(Message{
-		Endpoint:    "https://EXAMPLE.com/hook?a=1",
+		Endpoint:    "https://EXAMPLE.com/hook?b=2&a=%2F%3f&flag&x=one+two/three?four",
 		DeliveryID:  "delivery-1",
 		EventType:   "thing.changed",
 		ContentType: "application/json",
@@ -25,14 +25,14 @@ func TestBuildRequestConformanceVector(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantCanonical := "gotth-webhook-signature-v1\nPOST\nhttps://example.com:443/hook?a=1\ndelivery-1\n2\n1700000000\nthing.changed\napplication/json\nkey-1\n44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\n"
+	wantCanonical := "gotth-webhook-signature-v1\nPOST\nhttps://example.com:443/hook?b=2&a=%2F%3f&flag&x=one+two/three?four\ndelivery-1\n2\n1700000000\nthing.changed\napplication/json\nkey-1\n44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\n"
 	if string(canonical) != wantCanonical {
 		t.Fatalf("canonical = %q, want %q", canonical, wantCanonical)
 	}
-	if got, want := req.Header.Get(HeaderSignature), "v1=a2386d12fbe8e3ea40f5164d9844077d5c882e625858392aa800ff420004b0d4"; got != want {
+	if got, want := req.Header.Get(HeaderSignature), "v1=5afc952ae607736b86e3570dddc25991115f80afdb46c49832a30a5671028f7f"; got != want {
 		t.Fatalf("signature = %q, want %q", got, want)
 	}
-	if req.Method != "POST" || req.URL.String() != "https://example.com:443/hook?a=1" || req.Host != "example.com:443" {
+	if req.Method != "POST" || req.URL.String() != "https://example.com:443/hook?b=2&a=%2F%3f&flag&x=one+two/three?four" || req.URL.RawQuery != "b=2&a=%2F%3f&flag&x=one+two/three?four" || req.Host != "example.com:443" {
 		t.Fatalf("unexpected request target: %s %s host=%s", req.Method, req.URL, req.Host)
 	}
 	if req.Header.Get(HeaderDeliveryID) != "delivery-1" || req.Header.Get(HeaderAttempt) != "2" || req.Header.Get(HeaderTimestamp) != "1700000000" || req.Header.Get(HeaderEvent) != "thing.changed" || req.Header.Get(HeaderKeyID) != "key-1" {

@@ -10,12 +10,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
-func TestTLSLiteralDialAndRedirectDenialIntegration(t *testing.T) {
+func TestTLSLiteralDialAndMalformedRedirectDenialIntegration(t *testing.T) {
 	t.Parallel()
 
 	var mu sync.Mutex
@@ -31,7 +32,8 @@ func TestTLSLiteralDialAndRedirectDenialIntegration(t *testing.T) {
 		if err != nil || string(body) != "body" {
 			t.Errorf("body=%q error=%v", body, err)
 		}
-		http.Redirect(w, req, "/must-not-run", http.StatusFound)
+		w.Header().Set("Location", ":bad")
+		w.WriteHeader(http.StatusFound)
 	}))
 	defer server.Close()
 
@@ -48,13 +50,12 @@ func TestTLSLiteralDialAndRedirectDenialIntegration(t *testing.T) {
 		TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots},
 		MaxResponseHeaderBytes: 64 << 10,
 	}
-	client := &http.Client{Transport: transport, Timeout: time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	defer client.CloseIdleConnections()
+	defer transport.CloseIdleConnections()
 	config, err := validateConfig(Config{Secret: Secret{KeyID: "key", Value: make([]byte, minSecretBytes)}, Recorder: &memoryRecorder{}, Retry: RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, AttemptTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := newDispatcher(config, dependencies{client: client, now: time.Now, wait: noWait})
+	d := newDispatcher(config, dependencies{transport: transport, now: time.Now, wait: noWait})
 	result, err := d.Deliver(context.Background(), validMessage())
 	if !errors.Is(err, ErrPermanent) || result.StatusCode != http.StatusFound {
 		t.Fatalf("result=%+v error=%v", result, err)
@@ -67,6 +68,79 @@ func TestTLSLiteralDialAndRedirectDenialIntegration(t *testing.T) {
 	if got := mapped.snapshot(); len(got) != 1 || got[0] != "8.8.8.8:443" {
 		t.Fatalf("dial targets=%v", got)
 	}
+}
+
+func TestResponseHeaderLimitIsPermanentIntegration(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("X-Oversized", strings.Repeat("x", maxResponseHeaderBytes+1))
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	transport := mappedTLSTransport(server, true)
+	defer transport.CloseIdleConnections()
+	d, recorder := integrationDispatcher(t, transport, 2)
+	result, err := d.Deliver(context.Background(), validMessage())
+	if !errors.Is(err, ErrPermanent) || result.Attempts != 1 || result.StatusCode != 0 || result.Outcome != OutcomePermanent {
+		t.Fatalf("result=%+v error=%v", result, err)
+	}
+	if receipts := recorder.snapshot(); len(receipts) != 1 || receipts[0].ErrorCode != ErrorTransport {
+		t.Fatalf("receipts=%+v", receipts)
+	}
+}
+
+func TestCertificateFailureIsPermanentIntegration(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	transport := mappedTLSTransport(server, false)
+	defer transport.CloseIdleConnections()
+	d, recorder := integrationDispatcher(t, transport, 2)
+	result, err := d.Deliver(context.Background(), validMessage())
+	if !errors.Is(err, ErrPermanent) || result.Attempts != 1 || result.Outcome != OutcomePermanent {
+		t.Fatalf("result=%+v error=%v", result, err)
+	}
+	if receipts := recorder.snapshot(); len(receipts) != 1 || receipts[0].ErrorCode != ErrorTransport {
+		t.Fatalf("receipts=%+v", receipts)
+	}
+}
+
+func mappedTLSTransport(server *httptest.Server, trust bool) *http.Transport {
+	roots := x509.NewCertPool()
+	if trust {
+		roots.AddCert(server.Certificate())
+	}
+	checked := safeDialer{
+		resolver: &sequenceResolver{answers: [][]netip.Addr{{netip.MustParseAddr("8.8.8.8")}}},
+		dialer:   &mappingDialer{target: server.Listener.Addr().String()},
+	}
+	return &http.Transport{
+		Proxy:                  nil,
+		DialContext:            checked.DialContext,
+		TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots},
+		MaxResponseHeaderBytes: maxResponseHeaderBytes,
+	}
+}
+
+func integrationDispatcher(t *testing.T, transport http.RoundTripper, attempts int) (*Dispatcher, *memoryRecorder) {
+	t.Helper()
+	recorder := &memoryRecorder{}
+	config, err := validateConfig(Config{
+		Secret:         Secret{KeyID: "key", Value: make([]byte, minSecretBytes)},
+		Recorder:       recorder,
+		Retry:          RetryPolicy{MaxAttempts: attempts, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond},
+		AttemptTimeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newDispatcher(config, dependencies{transport: transport, now: time.Now, wait: noWait}), recorder
 }
 
 type mappingDialer struct {

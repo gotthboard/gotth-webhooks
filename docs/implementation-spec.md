@@ -10,7 +10,8 @@
   return the final known result.
 - `Recorder.Record(ctx, Receipt)`: consumer-owned persistence boundary. Calls
   may be repeated after an unknown store outcome, so implementations must
-  upsert by `(delivery_id, attempt)` and reject conflicting records.
+  be concurrency-safe, upsert by `(delivery_id, attempt)`, and reject
+  conflicting records.
 
 `Config` contains one `Secret`, a bounded `RetryPolicy`, attempt and receipt
 timeouts, and a required `Recorder`. Production dependencies are fixed. Tests
@@ -53,8 +54,11 @@ POST\n
 
 The canonical authority always includes port `443`; DNS names are lowercase
 ASCII and IPv6 literals are bracketed. An empty path becomes `/`; the parsed
-escaped path and raw query form the request target. Ambiguous opaque URLs,
-userinfo, fragments, encoded-host tricks, and non-443 ports fail validation.
+escaped path and validated raw query form the request target. Raw query bytes
+must match RFC 3986 `pchar / "/" / "?"`; percent escapes require exactly two
+hex digits. Valid query order and escape spelling are preserved. Ambiguous
+opaque URLs, userinfo, fragments, encoded-host tricks, invalid raw query bytes,
+and non-443 ports fail validation.
 
 Receivers must compare MACs in constant time, enforce their own timestamp
 window, bind the delivery ID to immutable event/body semantics, and durably
@@ -75,8 +79,10 @@ deduplicate before producing side effects.
 - content type: 1 through 256 bytes.
 
 After a retryable outcome, the delay is exponential and saturating. A valid
-`Retry-After` delta or HTTP date may increase that delay but never exceed the
-configured maximum. Cancellation during an attempt or wait returns promptly.
+`Retry-After` delta is ASCII `1*DIGIT`; parsing saturates without integer
+overflow. A valid delta or HTTP date may increase delay but never exceed the
+configured maximum, and values beyond the response-header bound are rejected.
+Cancellation during an attempt or wait returns promptly.
 No jitter is applied in V1 because deterministic policy is more useful to a
 consumer-owned durable scheduler; callers should distribute scheduling above
 this library when operating large fleets.
@@ -88,9 +94,12 @@ one-based attempt, request timestamp, start and finish times, outcome, status
 code when present, bounded response-byte count, and a stable error class. The
 fingerprint binds normalized target, event type, content type, and body while
 excluding attempt, timestamp, and signing key so retries and key rotation keep
-one identity. It contains no endpoint, event, body, key ID, signature, response
-body, or raw error string. This minimizes accidental disclosure while letting
-the durable store reject one delivery ID reused with different semantics.
+one identity. It contains no raw endpoint, event, body, key ID, signature,
+response body, or raw error string. The unkeyed fingerprint is still sensitive
+derived data: it enables correlation and guesses of low-entropy endpoint/query/
+body semantics. Receipt stores must restrict access and must not log or expose
+the fingerprint. Its stable form lets the durable store reject one delivery ID
+reused with different semantics across signing-key rotation.
 
 `Record` runs after the response body closes or the transport returns. It uses
 `context.WithoutCancel` plus the configured receipt timeout. A store failure is
@@ -99,16 +108,18 @@ must make exact replay idempotent and conflicting replay an error.
 
 Go context deadlines are cooperative. The library supplies a bounded record
 context but cannot force a broken `Recorder` implementation to return. The
-recorder is trusted consumer infrastructure and must honor the context.
+recorder is trusted consumer infrastructure and must honor the context and be
+safe for concurrent calls from one or more dispatchers.
 When recording returns an unknown failure, `Result.LastReceipt` contains the
 exact record so the consumer can query or replay the idempotent store operation
 without issuing another HTTP request.
 
 Raw transport and recorder errors are not propagated beyond the dispatcher;
 standard HTTP errors can contain the full target URL, including a sensitive
-query. Callers receive stable sentinels and inspect the non-sensitive result and
-receipt classes. Destination policy failures are permanent; transient resolver
-and network failures remain retryable.
+query. Callers receive stable sentinels and inspect bounded result/receipt
+classes, while treating any delivery fingerprint as sensitive. Destination
+policy, deterministic TLS/protocol, and unknown transport failures are
+permanent; only the documented typed transient allowlist is retryable.
 
 ## Production-unit order
 

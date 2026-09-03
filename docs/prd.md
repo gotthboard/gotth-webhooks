@@ -10,8 +10,10 @@ semantics.
 
 The current GOTTH Board product PRD places product webhooks in v4 and does not
 define events, recipients, subscriptions, payload schemas, or privacy rules.
-Those decisions therefore remain consumer-owned. This library handles only
-consumer-neutral outbound mechanics over opaque caller-provided bytes.
+Those decisions therefore remain consumer-owned. This candidate explores
+consumer-neutral outbound mechanics over opaque caller-provided bytes, but its
+public API is not admissible until one real consumer requirement validates the
+surface. A synthetic compile fixture is not that requirement.
 
 ## Requirements
 
@@ -20,8 +22,10 @@ consumer-neutral outbound mechanics over opaque caller-provided bytes.
 - `WHK-002`: Accept only canonical HTTPS endpoints without userinfo,
   fragments, non-default ports, or ambiguous URL forms.
 - `WHK-003`: Resolve a destination immediately before dialing, reject every
-  non-public or special-purpose address in an answer, dial only a validated
-  literal address, ignore ambient proxy settings, and never follow redirects.
+  address in the pinned IANA IPv4/IPv6 Special-Purpose Address Registries
+  regardless of their Global flag, admit IPv6 only from allocated global
+  unicast `2000::/3`, reject any other non-global address, dial only a validated
+  literal address, ignore ambient proxy settings, and never process redirects.
 - `WHK-004`: Sign each POST with HMAC-SHA-256 over a versioned canonical input
   binding the target, delivery ID, attempt, timestamp, event type, content
   type, key ID, and payload digest.
@@ -30,7 +34,7 @@ consumer-neutral outbound mechanics over opaque caller-provided bytes.
 - `WHK-006`: Provide cryptographically random delivery IDs and reject malformed
   identifiers, key IDs, event types, secrets, content types, and oversized
   bodies.
-- `WHK-007`: Retry only an explicit bounded class of transport failures and
+- `WHK-007`: Retry only an explicit typed allowlist of transient transport failures and
   HTTP statuses, cap `Retry-After`, and stop on cancellation, permanent
   response, exhausted attempts, or receipt-recording failure.
 - `WHK-008`: Bound connection, TLS, whole-attempt, response-header, and response
@@ -38,13 +42,15 @@ consumer-neutral outbound mechanics over opaque caller-provided bytes.
 - `WHK-009`: While the process survives, record every attempted request result
   through a required consumer-owned durable interface before returning or
   starting another attempt. Records contain metadata, never payloads, secrets,
-  signatures, endpoints, response bodies, or raw errors. A crash between HTTP
-  completion and recording remains an explicit unknown outcome.
+  signatures, raw endpoints, response bodies, or raw errors. The stable
+  semantics fingerprint is sensitive derived data, not log-safe metadata. A
+  crash between HTTP completion and recording remains an explicit unknown outcome.
 - `WHK-010`: Support secret rotation explicitly through a signed key ID. A
   dispatcher signs with exactly one configured current key; receivers own the
   bounded active/retired verification-key set and retirement window.
-- `WHK-011`: Remain safe for concurrent `Deliver` calls while requiring the
-  consumer to serialize or durably coordinate calls sharing a delivery ID and
+- `WHK-011`: Remain safe for concurrent `Deliver` calls, require `Recorder`
+  implementations to accept concurrent calls, and require the consumer to
+  serialize or durably coordinate calls sharing a delivery ID and
   allocate monotonically increasing attempts across invocations.
 - `WHK-012`: State that receiver processing and HTTP delivery are at-least-once
   possibilities, not exactly once; a timeout or transport error can follow a
@@ -65,7 +71,9 @@ consumer-neutral outbound mechanics over opaque caller-provided bytes.
 
 ## Acceptance
 
-Every requirement traces to design, source, tests, and evidence. Verification
+Local implementation requirements trace to design, source, tests, and evidence.
+Admission additionally requires one real consumer contract and pin; that
+product input is currently blocked. Verification
 includes format, vet, race, repeated race, statement coverage, fuzzing,
 boundary and negative tests, a real loopback TLS transport test using only
 test-internal dependencies, an external-consumer compile, performance

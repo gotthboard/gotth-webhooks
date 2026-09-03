@@ -21,7 +21,7 @@ Smallest acceptable repairs:
 
 - classify policy denial as permanent and preserve `ErrDestination`; keep true
   DNS/network failure retryable;
-- return stable sentinels and non-sensitive result/receipt metadata;
+- return stable sentinels and bounded result/receipt metadata;
 - document crash recovery honestly; and
 - correct the cost contract without changing the mechanism.
 
@@ -50,7 +50,9 @@ source and documentation.
 - Address-policy failures stop after one attempt and preserve both
   `ErrPermanent` and `ErrDestination`; transient DNS/network failures retry.
 - Returned errors cannot carry the endpoint query or raw recorder diagnostic.
-  The exact non-sensitive receipt remains available for reconciliation.
+  The exact receipt remains available for reconciliation. Later independent
+  review correctly identified its fingerprint as sensitive derived data; the
+  earlier safety characterization is withdrawn.
 - Crash-between-send-and-record is explicit in PRD, architecture, README, and
   security policy; exactly-once is rejected.
 - The corrected signature allocation contract matches the streaming hash and
@@ -69,3 +71,14 @@ receiver deduplication.
 Documented behavior was checked in Go docs/source and RFC authorities. The
 context-broker Judge packet was navigation-only, was truncated at its scan
 line bound, and no conclusion relies on it alone.
+
+## Independent orchestrator review — REJECTED, repair pending
+
+Reviewed commit: `a5a3b1060989f220bf97c4733a3248ac4c7e9130`
+
+The orchestrator rejected admission. The decisive product blocker remains: no
+real consumer contract validates the public API, and the synthetic external
+module proves syntax only. Source findings 2 through 9 were independently
+verified and are being repaired, but those repairs cannot turn the candidate
+into an admitted or releasable contract. A fresh internal review and exact
+repair-source evidence are required before handoff.
