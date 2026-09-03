@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -153,6 +154,57 @@ func TestDeliverDeterministicTransportFailuresArePermanent(t *testing.T) {
 				t.Fatalf("receipts=%+v", receipts)
 			}
 		})
+	}
+}
+
+func TestClassifyAttemptFailurePrecedenceAtAttemptDeadline(t *testing.T) {
+	t.Parallel()
+
+	attemptCtx, cancelAttempt := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer cancelAttempt()
+	tests := []struct {
+		name    string
+		err     error
+		outcome Outcome
+		code    ErrorCode
+	}{
+		{name: "destination", err: fmt.Errorf("wrapped: %w", ErrDestination), outcome: OutcomePermanent, code: ErrorDestination},
+		{name: "certificate", err: &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}, outcome: OutcomePermanent, code: ErrorTransport},
+		{name: "TLS record", err: tls.RecordHeaderError{Msg: "not TLS"}, outcome: OutcomePermanent, code: ErrorTransport},
+		{name: "TLS alert", err: tls.AlertError(40), outcome: OutcomePermanent, code: ErrorTransport},
+		{name: "protocol", err: &http.ProtocolError{ErrorString: "malformed response"}, outcome: OutcomePermanent, code: ErrorTransport},
+		{name: "header limit", err: http.ErrLineTooLong, outcome: OutcomePermanent, code: ErrorTransport},
+		{name: "transient", err: syscall.ETIMEDOUT, outcome: OutcomeRetryable, code: ErrorTimeout},
+		{name: "unknown", err: errors.New("unknown transport failure"), outcome: OutcomeRetryable, code: ErrorTimeout},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			outcome, code := classifyAttemptFailure(context.Background(), attemptCtx, tc.err)
+			if outcome != tc.outcome || code != tc.code {
+				t.Fatalf("classifyAttemptFailure() = (%s, %s), want (%s, %s)", outcome, code, tc.outcome, tc.code)
+			}
+		})
+	}
+}
+
+func TestClassifyAttemptFailureCallerCancellationDominatesDeadlineAndPermanentError(t *testing.T) {
+	t.Parallel()
+
+	parent, cancelParent := context.WithCancel(context.Background())
+	cancelParent()
+	attemptCtx, cancelAttempt := context.WithDeadline(parent, time.Unix(0, 0))
+	defer cancelAttempt()
+	for _, err := range []error{
+		fmt.Errorf("wrapped: %w", ErrDestination),
+		&tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}},
+		&http.ProtocolError{ErrorString: "malformed response"},
+		syscall.ETIMEDOUT,
+	} {
+		outcome, code := classifyAttemptFailure(parent, attemptCtx, err)
+		if outcome != OutcomeCanceled || code != ErrorCanceled {
+			t.Fatalf("error %T classified as (%s, %s), want (%s, %s)", err, outcome, code, OutcomeCanceled, ErrorCanceled)
+		}
 	}
 }
 

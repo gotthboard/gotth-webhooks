@@ -42,10 +42,14 @@ var errDialFailure = errors.New("dial failure")
 
 // DialContext resolves a hostname, rejects an entire unsafe or oversized
 // answer, and passes only validated numeric addresses to the underlying
-// dialer. Complexity: CPU time O(a*p), Omega(1), no input-independent tight
-// Theta bound; auxiliary space O(a), Omega(1), no single tight bound; a is
-// resolved address count and p is the fixed denied-prefix count; DNS and dial
-// latency are delegated and externally bounded by context.
+// dialer. Complexity: CPU time O(n+a*(p+w)), Omega(1), no input-independent
+// tight Theta bound; auxiliary space O(n+a+d), Omega(1), no single tight
+// bound. n is dial-address bytes scanned or materialized by address parsing
+// and numeric dial-target construction; a is the resolved address count; p is
+// the fixed denied-prefix count; w is the maximum number of wrapped/joined
+// error nodes visited by classification; and d is the maximum joined-error
+// traversal depth. Resolver and dial I/O latency and resolver-result allocation
+// are delegated and externally bounded by context and maxResolvedAddresses.
 func (d safeDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	if network != "tcp" && network != "tcp4" && network != "tcp6" {
 		return nil, fmt.Errorf("%w: unsupported network", ErrDestination)
@@ -130,8 +134,10 @@ func newHTTPTransport(attemptTimeout time.Duration) *http.Transport {
 // isRetryableTransportFailure is an allowlist, not a catch-all. Production
 // safe-dial failures, timeouts, connection loss, and truncated connections can
 // be transient. Unknown errors and deterministic TLS/HTTP protocol failures
-// are permanent. Complexity: time and auxiliary space O(1), Omega(1), tight
-// Theta(1), excluding delegated errors.Is/As chain traversal.
+// are permanent. Complexity: time O(w), Omega(1), no input-independent tight
+// bound; auxiliary space O(d), Omega(1), no input-independent tight bound; w
+// is wrapped/joined error nodes visited and d is maximum join-tree depth in
+// delegated errors.Is/As traversal.
 func isRetryableTransportFailure(err error) bool {
 	var marked *retryableTransportError
 	if errors.As(err, &marked) {
@@ -143,9 +149,10 @@ func isRetryableTransportFailure(err error) bool {
 // isAdmittedTransientTransportFailure is the shared typed allowlist for raw
 // resolver, dial, and transport errors. Resource/configuration errors take
 // precedence over net.Error.Temporary because the latter is deprecated and,
-// for example, reports EMFILE as temporary. Complexity: time and auxiliary
-// space O(1), Omega(1), tight Theta(1), excluding delegated errors.Is/As chain
-// traversal.
+// for example, reports EMFILE as temporary. Complexity: time O(w), Omega(1),
+// no input-independent tight bound; auxiliary space O(d), Omega(1), no
+// input-independent tight bound; w is wrapped/joined error nodes visited and d
+// is maximum join-tree depth in delegated errors.Is/As traversal.
 func isAdmittedTransientTransportFailure(err error) bool {
 	for _, permanent := range []error{
 		syscall.EACCES,
@@ -186,8 +193,10 @@ func isAdmittedTransientTransportFailure(err error) bool {
 // isDeterministicTransportFailure identifies exported TLS and HTTP protocol
 // failures that cannot improve merely by repeating the same request. Unknown
 // errors are also permanent, but keeping these cases explicit prevents a
-// future retry allowlist from swallowing them. Complexity: time and auxiliary
-// space O(1), Omega(1), tight Theta(1), excluding delegated error traversal.
+// future retry allowlist from swallowing them. Complexity: time O(w), Omega(1),
+// no input-independent tight bound; auxiliary space O(d), Omega(1), no
+// input-independent tight bound; w is wrapped/joined error nodes visited and d
+// is maximum join-tree depth in delegated errors.As/Is traversal.
 func isDeterministicTransportFailure(err error) bool {
 	var certificateError *tls.CertificateVerificationError
 	var recordError tls.RecordHeaderError

@@ -84,8 +84,13 @@ permanent, or canceled. A 2xx response is delivered. Status 408, 425, 429, and
 Only explicitly typed transient failures are retryable: deadline timeouts,
 safe-dialer-marked transient lookup/dial failures, selected connection errno
 values, and EOF/truncation. Destination rejection, certificate validation, TLS
-alerts/record failures, HTTP protocol/header-limit failures, and every unknown
-transport error are permanent. Caller cancellation remains canceled.
+alerts/record failures, and HTTP protocol/header-limit failures are permanent.
+An unknown transport error is permanent when no attempt deadline expired.
+Caller cancellation remains canceled and has
+first precedence. After that check, an observed destination, certificate,
+TLS-record/alert, or HTTP-protocol failure remains permanent even when the
+per-attempt deadline expires at the same edge; the attempt-deadline fallback
+applies only after those observed permanent classes are excluded.
 When every validated address fails to dial, the aggregate is retryable only if
 every observed dial failure belongs to the transient allowlist; any local
 resource/configuration or unknown failure in a mixed set makes the aggregate

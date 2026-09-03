@@ -149,8 +149,13 @@ Raw transport and recorder errors are not propagated beyond the dispatcher;
 standard HTTP errors can contain the full target URL, including a sensitive
 query. Callers receive stable sentinels and inspect bounded result/receipt
 classes, while treating any delivery fingerprint as sensitive. Destination
-policy, deterministic TLS/protocol, and unknown transport failures are
-permanent; only the documented typed transient allowlist is retryable.
+policy and deterministic TLS/protocol failures are permanent. Unknown
+transport failures are permanent when no attempt deadline expired; only the
+documented typed transient allowlist is otherwise retryable.
+Caller cancellation takes first precedence. An observed destination,
+certificate, TLS-record/alert, or HTTP-protocol failure takes precedence over a
+coincident per-attempt deadline; the deadline fallback is considered only
+after those permanent classes.
 For an exhausted multi-address dial, every observed error must be in that
 allowlist before the aggregate is retryable. A local resource/configuration or
 unknown error makes a mixed aggregate permanent and its details are redacted.

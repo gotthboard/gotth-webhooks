@@ -6,6 +6,11 @@ Released sections use Semantic Versioning; unreleased work remains under
 
 ## Unreleased
 
+Records are grouped by lineage. The active outbound-V1 feature lineage appears
+first in ascending Git commit time; the pre-feature distribution lineage
+follows, also in ascending Git commit time. A final `current commit` placeholder
+belongs to the commit that contains it and avoids an impossible self-hash.
+
 ### 2026-09-03 11:15:14 CDT — Implement bounded outbound webhook mechanics
 
 Commit: `338b885077a5870b5645b2e55a257ac487eab638`
@@ -280,6 +285,37 @@ Risks / non-goals:
 
 - Stable public classification deliberately omits raw lower-layer diagnostics.
 
+### 2026-09-03 12:31:17 CDT — Record final webhook repair evidence
+
+Commit: `8696c6ebeebb0111f070d10d9b98768df066c932`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record the verified failure-boundary repair state, retained performance and
+verification artifacts, workflow status, coverage posture, and internal-review
+result while leaving admission blocked on a real consumer.
+
+Verification:
+
+- exact commands, source revision, artifact paths, hashes, and review result in
+  the evidence commit
+
+Risks / non-goals:
+
+- Evidence did not admit or release the API and was later superseded by narrower
+  source and evidence repairs.
+
 ### 2026-09-03 12:56:51 CDT — Close post-repair dial classification gaps
 
 Commit: `62894967d7f2c8760d816d3f6d0c57928c8cab67`
@@ -524,6 +560,67 @@ Risks / non-goals:
 
 - Evidence does not admit, release, push, tag, deploy, or establish
   compatibility for the candidate.
+
+### 2026-09-03 14:17:51 CDT — Audit content-type evidence attribution
+
+Commit: `c30635434b88718f99ee5125052fdc309e737db9`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+
+Explanation:
+
+Add the exact record for the preceding content-type evidence commit. This
+historical self-attribution pattern is replaced by the policy-permitted current
+commit placeholder below so future evidence does not require endless
+changelog-only follow-ups.
+
+Verification:
+
+- exact `git show --name-only --format=fuller` attribution audit
+
+Risks / non-goals:
+
+- Changelog attribution does not alter implementation or admission state.
+
+### 2026-09-03 15:01:34 CDT — Repair deadline precedence and coverage gaps
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/network.go`
+- `pkg/webhooks/network_test.go`
+
+Explanation:
+
+Preserve caller cancellation first, then keep observed destination,
+certificate, TLS-record/alert, and HTTP-protocol failures permanent when the
+attempt deadline expires at the same edge. State address parsing and wrapped
+error traversal costs honestly. Add direct regressions for deadline/permanent
+precedence, transient DNS lookup classification, canonical MIME expansion past
+the output bound, and capped HTTP-date Retry-After handling. Document the
+changelog lineage order and replace self-referential attribution churn with the
+permitted current-commit placeholder.
+
+Verification:
+
+- focused race tests for the repaired and newly covered boundaries
+- full repository verification and retained evidence are recorded separately
+
+Risks / non-goals:
+
+- Unknown transport errors remain permanent unless the attempt deadline is the
+  only observed typed classification; no retry allowlist is widened.
+- The real-consumer contract and dependency pin remain separate admission
+  blockers. No push, tag, release, deployment, or live request is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 

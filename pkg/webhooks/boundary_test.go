@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"mime"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -234,6 +235,25 @@ func TestContentTypeLengthBoundaries(t *testing.T) {
 	}
 }
 
+func TestCanonicalContentTypeRejectsExpandedOutputBeyondLimit(t *testing.T) {
+	t.Parallel()
+
+	value := `text/plain; title="` + strings.Repeat("é", 40) + `"`
+	if len(value) > maxContentType {
+		t.Fatalf("test input length=%d exceeds input limit", len(value))
+	}
+	mediaType, params, err := mime.ParseMediaType(value)
+	if err != nil {
+		t.Fatalf("test input is not a valid media type: %v", err)
+	}
+	if expanded := mime.FormatMediaType(mediaType, params); len(expanded) <= maxContentType {
+		t.Fatalf("canonical test output length=%d does not exceed limit", len(expanded))
+	}
+	if _, err := canonicalContentType(value); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("expanded content type error=%v, want ErrInvalid", err)
+	}
+}
+
 func TestDeliverRejectsAttemptSequenceOverflow(t *testing.T) {
 	t.Parallel()
 
@@ -266,6 +286,7 @@ func TestRetryDelayAndRetryAfterForms(t *testing.T) {
 		{1, "-1", time.Second},
 		{1, "garbage", time.Second},
 		{1, now.Add(4 * time.Second).Format(http.TimeFormat), 4 * time.Second},
+		{1, now.Add(10 * time.Second).Format(http.TimeFormat), 5 * time.Second},
 		{1, now.Add(-time.Second).Format(http.TimeFormat), time.Second},
 	}
 	for _, tc := range tests {

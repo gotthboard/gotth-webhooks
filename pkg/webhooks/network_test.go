@@ -158,6 +158,25 @@ func TestSafeDialerCancellationDominatesAggregate(t *testing.T) {
 	}
 }
 
+func TestSafeDialerMarksTransientDNSLookupForRetry(t *testing.T) {
+	t.Parallel()
+
+	dial := &recordingDialer{}
+	safe := safeDialer{
+		resolver: &resolverFunc{fn: func(context.Context, string, string) ([]netip.Addr, error) {
+			return nil, classifiedNetError{temporary: true}
+		}},
+		dialer: dial,
+	}
+	_, err := safe.DialContext(context.Background(), "tcp", "example.com:443")
+	if err == nil || !isRetryableTransportFailure(err) {
+		t.Fatalf("transient DNS lookup error=%v, want retryable classification", err)
+	}
+	if len(dial.addresses) != 0 {
+		t.Fatalf("dialed after failed DNS lookup: %v", dial.addresses)
+	}
+}
+
 func TestSafeDialerPermanentFailureStopsDeliveryAfterOneAttempt(t *testing.T) {
 	t.Parallel()
 

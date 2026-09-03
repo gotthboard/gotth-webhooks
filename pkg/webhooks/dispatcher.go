@@ -177,14 +177,14 @@ func classifyAttemptFailure(parent, attemptCtx context.Context, err error) (Outc
 	if parent.Err() != nil {
 		return OutcomeCanceled, ErrorCanceled
 	}
-	if errors.Is(attemptCtx.Err(), context.DeadlineExceeded) {
-		return OutcomeRetryable, ErrorTimeout
-	}
 	if errors.Is(err, ErrDestination) {
 		return OutcomePermanent, ErrorDestination
 	}
 	if isDeterministicTransportFailure(err) {
 		return OutcomePermanent, ErrorTransport
+	}
+	if errors.Is(attemptCtx.Err(), context.DeadlineExceeded) {
+		return OutcomeRetryable, ErrorTimeout
 	}
 	if isRetryableTransportFailure(err) {
 		return OutcomeRetryable, ErrorTransport
