@@ -353,6 +353,27 @@ func TestDeliverRejectsInvalidRawQueryBeforeTransport(t *testing.T) {
 	}
 }
 
+func TestDeliverRejectsExplicitEmptyEndpointPortBeforeSideEffects(t *testing.T) {
+	t.Parallel()
+
+	transport := &scriptedTransport{}
+	recorder := &memoryRecorder{}
+	d := testDispatcher(t, recorder, transport, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+	for _, endpoint := range []string{
+		"https://example.com:/hook",
+		"https://[2001:4860:4860::8888]:/hook",
+	} {
+		msg := validMessage()
+		msg.Endpoint = endpoint
+		if result, err := d.Deliver(context.Background(), msg); !errors.Is(err, ErrInvalid) || result.Attempts != 0 {
+			t.Errorf("endpoint=%q result=%+v error=%v", endpoint, result, err)
+		}
+	}
+	if transport.callCount() != 0 || len(recorder.snapshot()) != 0 {
+		t.Fatalf("empty ports reached side effects: calls=%d receipts=%d", transport.callCount(), len(recorder.snapshot()))
+	}
+}
+
 func TestSafeDialerAdditionalFailurePaths(t *testing.T) {
 	t.Parallel()
 

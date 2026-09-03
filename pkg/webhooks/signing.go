@@ -15,11 +15,11 @@ const signatureDomain = "gotth-webhook-signature-v1"
 
 // buildRequest constructs one independently replayable signed POST. The
 // returned canonical bytes exist for conformance testing and are not retained
-// by Dispatcher. Complexity: time O(b+m), Omega(b+m), tight Theta(b+m);
-// auxiliary space O(m), Omega(m), tight Theta(m); b is body bytes and m is
-// canonical metadata bytes; hashing streams over the already-owned body;
-// delegated costs include SHA-256, HMAC-SHA-256, URL/request construction, and
-// body-reader allocation.
+// by Dispatcher. CPU time is Theta(1+b+m)+Htime(k); auxiliary space is
+// Theta(1+m)+Hspace(k). b, m, and k are body, canonical metadata, and secret-key
+// bytes; Htime/Hspace are delegated HMAC key-initialization costs. Hashing
+// streams over the already-owned body; other delegated costs include SHA-256,
+// URL/request construction, and body-reader allocation.
 func buildRequest(ctx context.Context, msg validatedMessage, secret Secret, attempt int, timestamp int64) (*http.Request, []byte, error) {
 	bodyDigest := sha256.Sum256(msg.body)
 	canonical := []byte(fmt.Sprintf(

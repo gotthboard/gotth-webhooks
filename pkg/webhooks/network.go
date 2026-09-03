@@ -30,7 +30,12 @@ type safeDialer struct {
 
 type retryableTransportError struct{ cause error }
 
+// Error returns a fixed redacted class. Time and auxiliary space are O(1),
+// Omega(1), tight Theta(1).
 func (e *retryableTransportError) Error() string { return "retryable transport failure" }
+
+// Unwrap returns the stored cause without copying it. Time and auxiliary space
+// are O(1), Omega(1), tight Theta(1).
 func (e *retryableTransportError) Unwrap() error { return e.cause }
 
 var errDialFailure = errors.New("dial failure")

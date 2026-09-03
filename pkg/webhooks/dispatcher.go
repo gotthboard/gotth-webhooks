@@ -25,8 +25,10 @@ type Dispatcher struct {
 }
 
 // New validates configuration, copies the secret, and constructs an owned
-// hardened HTTP transport. Complexity: time O(k), Omega(k), tight Theta(k);
-// auxiliary space O(k), Omega(k), tight Theta(k); k is secret bytes.
+// hardened HTTP transport. All-input time is O(1+q+k) and auxiliary space
+// O(1+k), both Omega(1), with no single tight bound because invalid
+// configuration can return before secret work. The admitted path is Theta(q+k)
+// time and Theta(k) auxiliary space; q and k are key-ID and secret bytes.
 func New(cfg Config) (*Dispatcher, error) {
 	validated, err := validateConfig(cfg)
 	if err != nil {
@@ -47,11 +49,14 @@ func newDispatcher(config validatedConfig, deps dependencies) *Dispatcher {
 }
 
 // Deliver performs bounded signed attempts and records each actual attempt
-// before retry or return. Complexity: CPU time O(A*(b+r)), Omega(b+r), no
-// input-independent tight Theta bound; auxiliary space O(b+r), Omega(b), no
-// single tight bound; A is configured attempts, b is body bytes, and r is at
-// most MaxResponseBytes+1; network, recorder, timer, DNS, and TLS costs are
-// delegated and bounded by configured contexts and transport limits.
+// before retry or return. All-input CPU time is O(V(e,c)+A*(b+r+m)), Omega(1),
+// with no single tight bound; auxiliary space is O(W(e,c)+b+m+T(b,r)),
+// Omega(1), also with no single tight bound. V/W are delegated endpoint and
+// content validation costs; T is delegated transport buffering; A is configured
+// attempts, b is body bytes, r is at most MaxResponseBytes+1, and m is bounded
+// request metadata. On the accepted-message path validation copies and hashes
+// b before attempts. Network, recorder, timer, DNS, and TLS costs are delegated
+// and bounded by configured contexts and transport limits.
 func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 	if ctx == nil {
 		return Result{}, fmt.Errorf("%w: nil context", ErrInvalid)
@@ -116,10 +121,11 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 }
 
 // attempt executes one request and returns only bounded classification data.
-// Complexity: CPU time O(b+r), Omega(b), no input-independent tight Theta
-// bound. Auxiliary space is O(m+r+T(b)), Omega(1), with no single tight bound:
-// m is request metadata, r is the constant-bounded response copy buffer, and
-// T(b) is any request buffering delegated to RoundTripper.
+// All-input CPU time is O(b+r+m), Omega(1), with no input-independent tight
+// bound; an admitted built request hashes all b body bytes. Auxiliary space is
+// O(m+T(b,r)), Omega(1), with no single tight bound: m is request metadata, r
+// is bounded response data, and T is request/response buffering delegated to
+// RoundTripper.
 // The request body is already owned and is hashed/read without another body
 // copy. Transport latency is delegated and bounded by attemptTimeout.
 func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attempt int) (Receipt, string, error) {

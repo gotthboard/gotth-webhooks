@@ -42,6 +42,8 @@ func TestParseEndpointRejectsUnsafeForms(t *testing.T) {
 		"http://example.com/hook",
 		"https://user@example.com/hook",
 		"https://example.com/hook#fragment",
+		"https://example.com:/hook",
+		"https://[2001:4860:4860::8888]:/hook",
 		"https://example.com:8443/hook",
 		"https://localhost/hook",
 		"https://127.0.0.1/hook",

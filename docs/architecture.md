@@ -33,9 +33,10 @@ consumer authorization/minimization
 Every attempt carries a stable delivery ID plus a one-based attempt number and
 Unix-second timestamp. HMAC-SHA-256 signs a domain-separated canonical input
 whose fields are newline-delimited after validation forbids newlines. The body
-is represented by its SHA-256 digest. The normalized HTTPS authority and exact
-request target are included, so a signature cannot be moved to another host,
-path, or query.
+is represented by its SHA-256 digest. The normalized absolute HTTPS target
+includes the literal `https://` scheme, lowercase DNS name or bracketed IP,
+explicit `:443`, and exact request target, so a signature cannot be moved to
+another scheme, host, path, or query.
 
 The key ID is public routing metadata, not a secret. It is covered by the MAC.
 A dispatcher has one current signing key. Rotation creates a new dispatcher

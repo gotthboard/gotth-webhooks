@@ -81,17 +81,19 @@ var ianaSpecialPurposePrefixes = []netip.Prefix{
 var allocatedGlobalIPv6 = netip.MustParsePrefix("2000::/3")
 
 // NewDeliveryID returns a 192-bit CSPRNG-backed, base64url delivery identity.
-// Complexity: time O(n), Omega(n), tight Theta(n); auxiliary space O(n),
-// Omega(n), tight Theta(n); n is the fixed 24-byte entropy input; delegated
-// costs are crypto/rand.Reader and base64 encoding.
+// All-input time and auxiliary space are O(n), Omega(1), with no single tight
+// bound because entropy acquisition can fail early; the successful path is
+// Theta(n). n is the fixed 24-byte entropy input; delegated costs are
+// crypto/rand.Reader and base64 encoding.
 func NewDeliveryID() (string, error) {
 	return newDeliveryID(rand.Reader)
 }
 
 // newDeliveryID isolates the entropy read so its failure contract is directly
-// testable. Complexity: time O(n), Omega(n), tight Theta(n); auxiliary space
-// O(n), Omega(n), tight Theta(n); n is the fixed 24-byte entropy input and the
-// delegated reader must either fill it or return an error.
+// testable. All-input time and auxiliary space are O(n), Omega(1), with no
+// single tight bound because the delegated reader can fail before n bytes; the
+// successful read/encode path is Theta(n). n is the fixed 24-byte entropy
+// input.
 func newDeliveryID(source io.Reader) (string, error) {
 	var raw [24]byte
 	if _, err := io.ReadFull(source, raw[:]); err != nil {
@@ -101,8 +103,11 @@ func newDeliveryID(source io.Reader) (string, error) {
 }
 
 // validateConfig applies all-zero defaults, validates fixed bounds, and copies
-// secret material. Complexity: time O(k), Omega(k), tight Theta(k); auxiliary
-// space O(k), Omega(k), tight Theta(k); k is secret length.
+// secret material. All-input time is O(1+q+k) and auxiliary space O(1+k), both
+// Omega(1), with no single tight bound because recorder, key, or length checks
+// can reject before secret processing. The admitted path is Theta(q+k) time and
+// Theta(k) auxiliary space due to token scanning and the secret copy; q and k
+// are key-ID and secret bytes.
 func validateConfig(cfg Config) (validatedConfig, error) {
 	if cfg.Recorder == nil {
 		return validatedConfig{}, fmt.Errorf("%w: recorder is required", ErrInvalid)
@@ -140,9 +145,11 @@ func validateConfig(cfg Config) (validatedConfig, error) {
 }
 
 // validateMessage validates and copies the complete caller boundary.
-// Complexity: time O(e+b+c), Omega(e+b+c), tight Theta(e+b+c); auxiliary
-// space O(e+b+c), Omega(b), with no single tight bound across valid URL forms;
-// e, b, and c are endpoint, body, and content-type bytes.
+// All-input time is O(V(e,c)+d+v+b) and auxiliary space O(W(e,c)+v+b), both
+// Omega(1), with no single tight bound because ordered checks can reject before
+// later fields. V/W are delegated endpoint and MIME validation costs; e, c, d,
+// v, and b are endpoint, content-type, delivery-ID, event-type, and body bytes.
+// The fully accepted path scans d/v and copies and hashes all b body bytes.
 func validateMessage(msg Message) (validatedMessage, error) {
 	ep, err := parseEndpoint(msg.Endpoint)
 	if err != nil {
@@ -173,10 +180,10 @@ func validateMessage(msg Message) (validatedMessage, error) {
 }
 
 // deliveryFingerprint binds immutable logical-delivery semantics independently
-// of attempt timestamp and signing-key rotation. Complexity: time O(e+v+c+b),
-// Omega(e+v+c+b), tight Theta(e+v+c+b); auxiliary space O(e+v+c), Omega(e+v+c),
-// tight Theta(e+v+c); e, v, c, and b are endpoint, event, content-type, and body
-// bytes; SHA-256 state is constant and the body is streamed into it.
+// of attempt timestamp and signing-key rotation. Time is
+// Theta(1+e+v+c+b); auxiliary space is Theta(1+e+v+c); e, v, c, and b are
+// endpoint, event, content-type, and body bytes. SHA-256 state is constant and
+// the body is streamed into it.
 func deliveryFingerprint(endpoint, eventType, contentType string, body []byte) [32]byte {
 	hash := sha256.New()
 	_, _ = io.WriteString(hash, "gotth-webhook-delivery-v1\n")
@@ -206,9 +213,10 @@ func validateToken(value, name string) error {
 }
 
 // canonicalContentType parses and deterministically formats one MIME media
-// type. Complexity: time and auxiliary space inherit mime.ParseMediaType and
-// mime.FormatMediaType over n input bytes; O(n), Omega(n), tight Theta not
-// established by their public contract; n is content-type bytes.
+// type. All-input time is O(n+Mtime(n)) and auxiliary space O(n+Mspace(n)),
+// both Omega(1), with no single tight bound because the length guard can reject
+// immediately. Mtime/Mspace are delegated mime.ParseMediaType and
+// mime.FormatMediaType costs for n admitted-length input bytes.
 func canonicalContentType(value string) (string, error) {
 	if len(value) == 0 || len(value) > maxContentType {
 		return "", fmt.Errorf("%w: content type length must be 1..%d bytes", ErrInvalid, maxContentType)
@@ -225,8 +233,11 @@ func canonicalContentType(value string) (string, error) {
 }
 
 // parseEndpoint returns the exact normalized HTTPS target used for both the
-// request and signature. Complexity: time and auxiliary space O(n), Omega(n),
-// tight Theta(n) for endpoint bytes n, plus delegated URL parsing.
+// request and signature. All-input time is O(n+Utime(n)) and auxiliary space
+// O(n+Uspace(n)), both Omega(1), with no single tight bound because the length
+// and syntax checks can reject before normalization. Utime/Uspace are delegated
+// URL parsing costs; an accepted n-byte endpoint creates proportional
+// lowercase/canonical strings.
 func parseEndpoint(raw string) (endpoint, error) {
 	if len(raw) == 0 || len(raw) > maxEndpointBytes {
 		return endpoint{}, fmt.Errorf("%w: endpoint length must be 1..%d bytes", ErrInvalid, maxEndpointBytes)
@@ -234,6 +245,9 @@ func parseEndpoint(raw string) (endpoint, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Scheme != "https" || u.Opaque != "" || u.User != nil || u.Fragment != "" || u.RawFragment != "" {
 		return endpoint{}, fmt.Errorf("%w: endpoint must be an unambiguous HTTPS URL", ErrInvalid)
+	}
+	if strings.HasSuffix(u.Host, ":") {
+		return endpoint{}, fmt.Errorf("%w: endpoint port must be omitted or 443", ErrInvalid)
 	}
 	host := strings.ToLower(u.Hostname())
 	if host == "" || strings.Contains(host, "%") || !validASCIIHost(host) {
@@ -306,9 +320,10 @@ func isQueryByte(c byte) bool {
 }
 
 // validASCIIHost validates an IP literal or an RFC-compatible conservative
-// DNS label subset. Complexity: time O(n), Omega(1), no input-independent tight
-// Theta bound; auxiliary space O(n), Omega(1), no single tight bound; n is host
-// bytes and the allocation comes from label splitting.
+// DNS label subset. All-input time is O(n+Itime(n)) and auxiliary space
+// O(n+Ispace(n)), both Omega(1), with no input-independent tight bound. Itime/
+// Ispace are delegated netip.ParseAddr costs; an accepted DNS path scans n host
+// bytes and allocates label views, while IP and early-rejection paths diverge.
 func validASCIIHost(host string) bool {
 	if ip, err := netip.ParseAddr(host); err == nil {
 		return ip.Zone() == ""
@@ -355,8 +370,8 @@ func isPublicAddress(ip netip.Addr) bool {
 }
 
 // canonicalPort validates a dial target and returns its host and fixed port.
-// Complexity: time is S(n)+O(1), with no tighter bound asserted by the public
-// contract; S(n) is delegated net.SplitHostPort work for n address bytes.
+// All-input time is S(n)+O(1), Omega(1), with no tighter bound asserted by the
+// public contract; S(n) is delegated net.SplitHostPort work for n address bytes.
 // Successful-path auxiliary space is O(1), Omega(1), tight Theta(1), because
 // returned host/port strings are substring views. Rejection additionally
 // delegates bounded error allocation to net.SplitHostPort and fmt.Errorf.

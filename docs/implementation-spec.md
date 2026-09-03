@@ -42,7 +42,7 @@ The signature input is UTF-8 bytes:
 ```text
 gotth-webhook-signature-v1\n
 POST\n
-<normalized https authority><request-target>\n
+https://<lowercase-host-or-bracketed-IP>:443<request-target>\n
 <delivery-id>\n
 <attempt decimal>\n
 <timestamp decimal>\n
@@ -52,13 +52,38 @@ POST\n
 <lowercase hex SHA-256 body digest>\n
 ```
 
-The canonical authority always includes port `443`; DNS names are lowercase
-ASCII and IPv6 literals are bracketed. An empty path becomes `/`; the parsed
-escaped path and validated raw query form the request target. Raw query bytes
-must match RFC 3986 `pchar / "/" / "?"`; percent escapes require exactly two
-hex digits. Valid query order and escape spelling are preserved. Ambiguous
+The signed target is an absolute URI beginning with the literal bytes
+`https://`. Its URI authority always includes port `443`; DNS names are
+lowercase ASCII and IPv6 literals are bracketed. An empty path becomes `/`; the
+parsed escaped path and validated raw query form the request target. Raw query
+bytes must match RFC 3986 `pchar / "/" / "?"`; percent escapes require exactly
+two hex digits. Valid query order and escape spelling are preserved. Ambiguous
 opaque URLs, userinfo, fragments, encoded-host tricks, invalid raw query bytes,
-and non-443 ports fail validation.
+explicit empty ports, and non-443 ports fail validation.
+
+### Conformance vector
+
+For endpoint
+`https://EXAMPLE.com/hook?b=2&a=%2F%3f&flag&x=one+two/three?four`, delivery ID
+`delivery-1`, attempt `2`, timestamp `1700000000`, event `thing.changed`, content
+type `application/json`, key ID `key-1`, body `{}`, and the 32 ASCII-byte secret
+`0123456789abcdef0123456789abcdef`, the exact signed bytes are:
+
+```text
+gotth-webhook-signature-v1
+POST
+https://example.com:443/hook?b=2&a=%2F%3f&flag&x=one+two/three?four
+delivery-1
+2
+1700000000
+thing.changed
+application/json
+key-1
+44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+```
+
+The digest line has a final newline. The expected header is
+`X-Gotth-Webhook-Signature: v1=5afc952ae607736b86e3570dddc25991115f80afdb46c49832a30a5671028f7f`.
 
 Receivers must compare MACs in constant time, enforce their own timestamp
 window, bind the delivery ID to immutable event/body semantics, and durably

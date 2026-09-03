@@ -2,6 +2,7 @@ package webhooks
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -84,5 +85,43 @@ func TestSignatureBindsEveryField(t *testing.T) {
 	otherKeyID.KeyID = "key-2"
 	if signature(base, 1, 1, otherKeyID) == want {
 		t.Error("key ID did not change signature")
+	}
+}
+
+func TestSignatureNormalizesDefaultPortAndRejectsEmptyPort(t *testing.T) {
+	t.Parallel()
+
+	secret := Secret{KeyID: "key-1", Value: []byte("0123456789abcdef0123456789abcdef")}
+	signature := func(endpoint string) (string, string) {
+		t.Helper()
+		msg, err := validateMessage(Message{
+			Endpoint: endpoint, DeliveryID: "delivery-1", EventType: "thing.changed",
+			ContentType: "application/json", Body: []byte("{}"),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		req, canonical, err := buildRequest(context.Background(), msg, secret, 2, 1700000000)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(canonical), req.Header.Get(HeaderSignature)
+	}
+	omittedCanonical, omittedSignature := signature("https://EXAMPLE.com/hook?q=1")
+	explicitCanonical, explicitSignature := signature("https://example.com:443/hook?q=1")
+	if omittedCanonical != explicitCanonical || omittedSignature != explicitSignature {
+		t.Fatalf("default-port normalization diverged:\nomitted=%q %q\nexplicit=%q %q", omittedCanonical, omittedSignature, explicitCanonical, explicitSignature)
+	}
+	for _, endpoint := range []string{
+		"https://example.com:/hook",
+		"https://[2001:4860:4860::8888]:/hook",
+	} {
+		_, err := validateMessage(Message{
+			Endpoint: endpoint, DeliveryID: "delivery-1", EventType: "thing.changed",
+			ContentType: "application/json", Body: []byte("{}"),
+		})
+		if !errors.Is(err, ErrInvalid) {
+			t.Errorf("endpoint=%q error=%v", endpoint, err)
+		}
 	}
 }
