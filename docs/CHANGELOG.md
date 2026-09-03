@@ -694,7 +694,7 @@ Risks / non-goals:
 
 ### 2026-09-03 16:05:00 CDT — Record causal-deadline repair evidence
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `f4ffb41c3a23978fcb990be05e60e919e53c8843`
 
 Affected files:
 
@@ -726,6 +726,35 @@ Risks / non-goals:
 - This evidence does not claim a clean independent review, admission, release,
   compatibility, or consumer behavior.
 - No push, PR, tag, deployment, live request, or remote mutation is performed.
+
+### 2026-09-03 16:20:00 CDT — Complete webhook cost aggregation contracts
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/retry.go`
+
+Explanation:
+
+Carry complete message-identifier validation and delegated HMAC key-processing
+costs through the attempt and delivery aggregates. Separate
+`consumeResponse`'s constant local working space from arbitrary delegated
+response-body Read/Close CPU, allocation, I/O, and latency. This is a
+comments-only production-source repair; executable behavior is unchanged.
+
+Verification:
+
+- non-comment production-source identity proof
+- full source and retained-evidence gates recorded separately
+
+Risks / non-goals:
+
+- No API, runtime, retry, transport, receipt, or allocation behavior changes.
+- The real-consumer contract and dependency pin remain separate admission
+  blockers. No push, tag, release, deployment, or live request is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
