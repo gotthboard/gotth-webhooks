@@ -52,3 +52,40 @@ func FuzzSignedRequestDeterministic(f *testing.F) {
 		}
 	})
 }
+
+func FuzzCanonicalContentType(f *testing.F) {
+	for _, seed := range []string{
+		"application/json",
+		` Application/JSON ; note="hello world" `,
+		`text/plain; title="café"`,
+		"application/json\t",
+		`application/json; note="a` + "\x00" + `b"`,
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, value string) {
+		canonical, err := canonicalContentType(value)
+		containsControl := false
+		for i := range len(value) {
+			if value[i] < 0x20 || value[i] == 0x7f {
+				containsControl = true
+				break
+			}
+		}
+		if containsControl && err == nil {
+			t.Fatalf("accepted ASCII control in %q as %q", value, canonical)
+		}
+		if err != nil {
+			return
+		}
+		for i := range len(canonical) {
+			if canonical[i] < 0x20 || canonical[i] == 0x7f {
+				t.Fatalf("canonical output contains ASCII control: input=%q output=%q", value, canonical)
+			}
+		}
+		repeated, err := canonicalContentType(canonical)
+		if err != nil || repeated != canonical {
+			t.Fatalf("canonical form is not idempotent: input=%q canonical=%q repeated=%q error=%v", value, canonical, repeated, err)
+		}
+	})
+}

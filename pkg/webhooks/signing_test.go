@@ -125,3 +125,67 @@ func TestSignatureNormalizesDefaultPortAndRejectsEmptyPort(t *testing.T) {
 		}
 	}
 }
+
+func TestSignatureRejectsContentTypeControls(t *testing.T) {
+	t.Parallel()
+
+	for _, contentType := range contentTypeControlValues() {
+		msg := validMessage()
+		msg.ContentType = contentType
+		if _, err := validateMessage(msg); !errors.Is(err, ErrInvalid) {
+			t.Errorf("signature validation ContentType=%q error = %v", contentType, err)
+		}
+	}
+}
+
+func TestSignatureUsesCanonicalSupportedContentType(t *testing.T) {
+	t.Parallel()
+
+	secret := Secret{KeyID: "key-1", Value: []byte("0123456789abcdef0123456789abcdef")}
+	tests := []struct {
+		name      string
+		input     string
+		canonical string
+	}{
+		{
+			name:      "optional spaces and quoted space",
+			input:     ` Application/JSON ; Charset="UTF-8"; note="hello world" `,
+			canonical: `application/json; charset=UTF-8; note="hello world"`,
+		},
+		{
+			name:      "quoted UTF-8 parameter",
+			input:     `text/plain; title="café"`,
+			canonical: `text/plain; title*=utf-8''caf%C3%A9`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			sign := func(contentType string) (string, string) {
+				t.Helper()
+				msg := validMessage()
+				msg.ContentType = contentType
+				validated, err := validateMessage(msg)
+				if err != nil {
+					t.Fatal(err)
+				}
+				req, signed, err := buildRequest(context.Background(), validated, secret, 1, 1700000000)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !strings.Contains(string(signed), "\n"+tc.canonical+"\n") {
+					t.Fatalf("signed bytes omit canonical content type: %q", signed)
+				}
+				if got := req.Header.Get("Content-Type"); got != tc.canonical {
+					t.Fatalf("Content-Type = %q, want %q", got, tc.canonical)
+				}
+				return string(signed), req.Header.Get(HeaderSignature)
+			}
+			inputBytes, inputSignature := sign(tc.input)
+			canonicalBytes, canonicalSignature := sign(tc.canonical)
+			if inputBytes != canonicalBytes || inputSignature != canonicalSignature {
+				t.Fatal("equivalent content types produced different canonical signatures")
+			}
+		})
+	}
+}

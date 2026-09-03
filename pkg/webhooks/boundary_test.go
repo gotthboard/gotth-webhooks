@@ -92,6 +92,40 @@ func TestValidateMessageBoundaries(t *testing.T) {
 	}
 }
 
+func TestPublicDeliverRejectsContentTypeControlsBeforeSideEffects(t *testing.T) {
+	recorder := &memoryRecorder{}
+	dispatcher, err := New(Config{
+		Secret:   Secret{KeyID: "key-1", Value: []byte(strings.Repeat("s", minSecretBytes))},
+		Recorder: recorder,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	transportCalls := 0
+	dispatcher.transport = roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		transportCalls++
+		return response(http.StatusNoContent, "", ""), nil
+	})
+
+	for _, contentType := range contentTypeControlValues() {
+		msg := validMessage()
+		msg.ContentType = contentType
+		result, err := dispatcher.Deliver(context.Background(), msg)
+		if !errors.Is(err, ErrInvalid) {
+			t.Errorf("Deliver ContentType=%q error = %v", contentType, err)
+		}
+		if result != (Result{}) {
+			t.Errorf("Deliver ContentType=%q result = %+v", contentType, result)
+		}
+	}
+	if transportCalls != 0 {
+		t.Fatalf("transport calls = %d, want 0", transportCalls)
+	}
+	if receipts := recorder.snapshot(); len(receipts) != 0 {
+		t.Fatalf("recorded %d receipts before validation", len(receipts))
+	}
+}
+
 func TestConfigurationLimitBoundaries(t *testing.T) {
 	t.Parallel()
 

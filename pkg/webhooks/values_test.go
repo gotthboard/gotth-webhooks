@@ -2,6 +2,7 @@ package webhooks
 
 import (
 	"context"
+	"errors"
 	"net/netip"
 	"strings"
 	"testing"
@@ -212,6 +213,63 @@ func TestValidateTokenBoundaries(t *testing.T) {
 			t.Errorf("validateToken(%q) succeeded", value)
 		}
 	}
+}
+
+func TestCanonicalContentTypeRejectsEveryASCIIControlPosition(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range contentTypeControlValues() {
+		if _, err := canonicalContentType(value); !errors.Is(err, ErrInvalid) {
+			t.Errorf("canonicalContentType(%q) error = %v", value, err)
+		}
+	}
+}
+
+func TestCanonicalContentTypePreservesSupportedText(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{
+			name:  "optional spaces and quoted space",
+			value: ` Application/JSON ; Charset="UTF-8"; note="hello world" `,
+			want:  `application/json; charset=UTF-8; note="hello world"`,
+		},
+		{
+			name:  "quoted UTF-8 parameter",
+			value: `text/plain; title="café"`,
+			want:  `text/plain; title*=utf-8''caf%C3%A9`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := canonicalContentType(tc.value)
+			if err != nil || got != tc.want {
+				t.Fatalf("canonicalContentType(%q) = %q, %v; want %q", tc.value, got, err, tc.want)
+			}
+		})
+	}
+}
+
+func contentTypeControlValues() []string {
+	values := make([]string, 0, 33*3)
+	controls := make([]byte, 0, 33)
+	for control := byte(0); control < 0x20; control++ {
+		controls = append(controls, control)
+	}
+	controls = append(controls, 0x7f)
+	for _, control := range controls {
+		values = append(values,
+			string([]byte{control})+"application/json",
+			"application/json"+string([]byte{control}),
+			`application/json; note="a`+string([]byte{control})+`b"`,
+		)
+	}
+	return values
 }
 
 func TestValidateAndDefaultConfig(t *testing.T) {

@@ -22,8 +22,14 @@ number, opaque event type, content type, and body. Zero first attempt defaults
 to one and is suitable only for the first invocation. A consumer retry after a
 process boundary must allocate the next monotonically increasing number from
 durable state. `Deliver` copies the body before network work. The body limit is
-1 MiB. Identifiers and event types are restricted printable tokens; content
-type must parse as a media type and cannot contain control characters.
+1 MiB. Identifiers and event types are restricted printable tokens. Content
+type must be 1 through 256 bytes, must parse as a media type, and is rejected
+before parsing if any input byte is an ASCII C0 control (`0x00` through
+`0x1f`) or DEL (`0x7f`). This includes CR, LF, and HTAB even where a MIME
+parser might trim or preserve them. Non-ASCII input policy is otherwise
+unchanged: MIME parameter values accepted by Go's parser remain supported and
+deterministic formatting may serialize them with RFC 2231 UTF-8 percent
+encoding.
 
 ## Wire contract
 

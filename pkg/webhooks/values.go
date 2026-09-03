@@ -212,14 +212,21 @@ func validateToken(value, name string) error {
 	return nil
 }
 
-// canonicalContentType parses and deterministically formats one MIME media
-// type. All-input time is O(n+Mtime(n)) and auxiliary space O(n+Mspace(n)),
-// both Omega(1), with no single tight bound because the length guard can reject
-// immediately. Mtime/Mspace are delegated mime.ParseMediaType and
+// canonicalContentType rejects ASCII controls, then parses and deterministically
+// formats one MIME media type. Non-ASCII bytes retain mime.ParseMediaType's
+// policy and are serialized by mime.FormatMediaType. All-input time is
+// O(n+Mtime(n)) and auxiliary space O(n+Mspace(n)), both Omega(1), with no
+// single tight bound because the length guard or control scan can reject before
+// parsing. Mtime/Mspace are delegated mime.ParseMediaType and
 // mime.FormatMediaType costs for n admitted-length input bytes.
 func canonicalContentType(value string) (string, error) {
 	if len(value) == 0 || len(value) > maxContentType {
 		return "", fmt.Errorf("%w: content type length must be 1..%d bytes", ErrInvalid, maxContentType)
+	}
+	for i := range len(value) {
+		if value[i] < 0x20 || value[i] == 0x7f {
+			return "", fmt.Errorf("%w: content type contains an ASCII control byte", ErrInvalid)
+		}
 	}
 	mediaType, params, err := mime.ParseMediaType(value)
 	if err != nil {
