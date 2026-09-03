@@ -32,3 +32,12 @@ The packet byte budget was not exhausted, but the repository scan hit its
 100-line emission bound and was marked truncated. Every consequential finding
 was independently verified in complete production source, Go contracts, and
 focused tests.
+
+The pass-5 repair used context-broker 0.1.0 (same broker SHA-256) against clean
+head `c30635434b88718f99ee5125052fdc309e737db9`, base
+`0bba05927d7922e693a6211ffc41ee3ab91ba451`, mode `handoff`, budgets 16
+files/100 lines/30,000 bytes. It was a cache miss at
+`/home/linus/.cache/openclaw-code-context/dfbe6fd02ca720e0/8c113b1e0c50836a/56db1714b87bf8e9c97406e34801ca425995a0df449890f81d83b2cfbe0c36e7.json`.
+The packet emitted 10 files/100 lines/12,809 bytes and marked its broader scan
+truncated. It was navigation evidence only; the cited source, tests, Git
+objects, Go contracts, and retained artifacts were read or verified directly.

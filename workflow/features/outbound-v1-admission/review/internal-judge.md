@@ -190,3 +190,29 @@ and second-resolution CDT author/committer time mechanically matched to Git.
 Exact gates, fifty race runs, affected fuzzing, benchmark observation, clean
 clone, external syntax fixture, and pass-13 cold review pass. Admission remains
 blocked solely on the absent real-consumer contract and pin.
+
+## Independent cold pass 5 — NARROW AND RETRY
+
+Reviewed commit: `c30635434b88718f99ee5125052fdc309e737db9`
+
+The independent Judge found that an expired attempt context overrode observed
+destination/TLS/protocol failures, three network cost contracts excluded
+variable parsing/error traversal, changelog evidence omitted meaningful commits
+and had no declared ordering, and four contract branches lacked direct tests.
+The consumer-pin blocker remained separately open.
+
+## Repair pass 16 — FINDINGS ADDRESSED / INDEPENDENT RECHECK PENDING
+
+Reviewed source: `f1fd980e8e6bd184815b871fb5b7513a999725d1`
+
+Caller cancellation remains first; observed destination, certificate,
+TLS-record/alert, and HTTP-protocol failures now remain permanent across a
+coincident attempt deadline. Network comments include address-byte parsing and
+wrapped/joined-error traversal. Tests directly cover every cited gap, and all
+touched production functions are at 100% statement coverage. Changelog records
+now declare their lineage order, include `8696c6e` and `c306354`, and use the
+permitted current-commit placeholder instead of endless attribution commits.
+Exact source gates pass at 97.3%. This is not a CLEAN claim: the orchestrator
+must run a fresh independent pass and, if clean, an independent double-check.
+Admission also still requires a real consumer adapter, behavioral proof, and
+dependency pin.

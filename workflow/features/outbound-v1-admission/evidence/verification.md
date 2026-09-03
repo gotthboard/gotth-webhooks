@@ -1,71 +1,59 @@
 # Local repair verification evidence
 
-Independent reviews rejected the prior candidates through exact head
-`ff4fee3f5aa94cb5b44694050188793e5b181a8d`. Source commit
-`be6f7150f3419ff3bcb971476119e7cc3f2cb10b` repairs the remaining
-content-type control-byte contract. Exact candidate
-`94f2b7d080d9959af3c1d23a5a4349b555ee240b` also corrects historical
-changelog times and file attribution against Git. The consumer blocker is
-unchanged.
+Independent cold Judge pass 5 rejected exact head
+`c30635434b88718f99ee5125052fdc309e737db9`. Source commit
+`f1fd980e8e6bd184815b871fb5b7513a999725d1` repairs the four technical
+findings without changing the consumer-owned product boundary. The workflow
+remains `in_progress`; fresh independent review and a real consumer pin remain
+open.
 
-Exact source-tip commands and results:
+Exact source-tip commands and results under Go 1.26.6-X:nodwarf5:
 
-- `make verify` — PASS under Go 1.26.6-X:nodwarf5.
+- `make verify` — PASS.
 - `go test -mod=readonly -count=1 -race -coverprofile=... ./...` — PASS,
-  96.5%. Artifact hashes:
-  - coverage: `d726bb571e9c7aaa908017281cf2e939ceb441d9dee0458292585ac537d206f4`;
-  - log: `0ea7a506966f3668504a627d4eee3385245895feae54a3f80008aec91ef1da57`;
-  - function summary:
-    `bd04b3a37fc42b96b3a1f891327d9606b51ecdb03031ae1b3edc44ca6cee0ef8`.
-- Fifty uncached full race runs — PASS; log SHA-256
-  `06a0544953f7e992d1d81f4fa435b4ace668f4e9e22a96a97497a9c13f266b2c`.
-- `FuzzCanonicalContentType` — PASS, 115,255 executions/5 seconds; log
-  SHA-256 `8b950e8ba634b6a64e87d9ec35e48671196975534ed789d368e73d5870674fa7`.
-- `FuzzSignedRequestDeterministic` — PASS, 82,089 executions/5 seconds; log
-  SHA-256 `e24e14b88b3e57395d5f48742d131b0bc0731b7081566383f9f5d089619290ce`.
-- Detached clone `/tmp/gotth-webhooks-94f2b7d-clean.FPVPPK/repo`, detached at
-  exact object `94f2b7d080d9959af3c1d23a5a4349b555ee240b`, with fresh empty
-  `GOCACHE`: `make verify` PASS at 96.5%; tracked status clean.
-- Synthetic module `/tmp/gotth-webhooks-consumer`:
-  `go test -mod=readonly -count=1 ./...` — PASS. This is syntax evidence only,
-  not a real consumer or compatibility pin.
-- Exact benchmark raw SHA-256:
-  `bcb578a6535e9af7ba178440e5fd1950c4b4316c3be9501534c9036fe2491bc7`.
-- Exact file-list and second-resolution CDT heading-time comparison against
-  Git passed for all 16 named changelog commits.
-- Internal cold passes found ASCII-OWS/concurrency wording, false permanent
-  status reporting, exhausted-dial classification, exact signed-target and
-  empty-port defects, cost-contract defects, MIME controls, and changelog
-  provenance. Fresh pass 13 is source-CLEAN.
+  97.3%. Touched production functions `classifyAttemptFailure`,
+  `safeDialer.DialContext`, `canonicalContentType`, and `parseRetryAfter` are
+  100% covered.
+- Fifty focused race repetitions covering concurrent dispatch/recording plus
+  cancellation, deadline/permanent precedence, transient DNS lookup,
+  content-type expansion, and capped HTTP-date Retry-After — PASS.
+- `FuzzParseEndpoint` — PASS, 99,546 executions/5 seconds.
+- `FuzzSignedRequestDeterministic` — PASS, 77,965 executions/5 seconds.
+- `FuzzCanonicalContentType` — PASS, 91,802 executions/5 seconds.
+- Independent OpenSSL HMAC-SHA-256 vector — PASS, exact expected digest.
+- Detached clean clone at exact source `f1fd980e8e6bd184815b871fb5b7513a999725d1`
+  with fresh empty `GOCACHE`: `make verify` PASS at 97.3%; tracked state clean.
+- Synthetic external module: `go test -mod=readonly -count=1 ./...` — PASS.
+  This is syntax evidence only, not a consumer contract or compatibility pin.
+- Changelog audit — PASS for 20 named historical records, their declared
+  two-lineage order, exact Git timestamps, exact file sets, and one permitted
+  current-commit placeholder.
+- Six retained RFC/IANA authority snapshot hashes — PASS.
+- Exact five-regime benchmark observation — PASS; no speedup claim.
 
-The exact clean-clone commit and source object are identical. The following
-older evidence is retained only as rejected-history provenance.
+Artifact SHA-256 values:
 
-Candidate and exact-source commands:
+- verify: `a68ff9bbb96d8682260a855a93f2b3e7188ffea9702a11582cda97d67f338445`;
+- coverage: `7bf789422f4a247dc6cf3c57ca5a1d34add685aa235ba5f4da80736c5e37feef`;
+- coverage log: `9be78b6a981773b5a46ebccdc10b30bd37892aa7657386386958564b70160929`;
+- coverage function summary: `15f005a235c5683685ac58824aa61abf44c453d7b6ad18a64d005ca8697794ea`;
+- focused race50: `c470b715acea25d41b9eea1020ce8e1d239ad419712777894062ea5701c39062`;
+- endpoint fuzz: `f7434c2c758065553595926ad6a18159bfcc0b25a53d96e58f5d72a29e9fd30a`;
+- signing fuzz: `0c9f3d8d74f65663e423fc3170528c96184cf9a794824f59e5d715189222d900`;
+- content-type fuzz: `36f4bfb75c7a0d5e2e8d2a3cf892a6eeadc5acddecc3cfb4bc89eb36df0f3bf8`;
+- independent HMAC: `c23d27896db18640b7451655ae1ff339012f4cc79c8c708eb886a161f3160944`;
+- clean clone: `0b38c6a29eff11b4513f3555acee8b361ae8e95bb07b9ff41bf8e1dc6c9512ab`;
+- synthetic consumer: `c7a8c308ddd88137cf0bc359f1fd749625636c35e91a8216ee54b2a139080263`;
+- changelog provenance: `93638eff1049dbcc7ef5a4db8dd7726944168d48d6309af41739057549ca0023`;
+- authority hashes: `6895ab208fddb8977864210f09c009bae8fffe4c655689babf8f188713c3787a`;
+- benchmark: `d45c180a8261f2e7024b7eb7d351e71fe046e76cd5a5311e30c7293fa508d44f`.
 
-- `make verify` — PASS under Go 1.26.6-X:nodwarf5.
-- `go test -race -coverprofile=/tmp/gotth-webhooks-coverage-final.out ./...`
-  — PASS; superseded by the exact repair-source 97.0% run below.
-- Exact repair-source coverage at `1defba3673c8e8948501c9f65997b58573d6a844`:
-  PASS, 97.0%. Artifacts:
-  - `/tmp/gotth-webhooks-1defba3.coverage.out`, SHA-256
-    `9743e14290bc3a3e747c02335edcdc420002cf1aeef7883d323584cf7c2a3424`.
-  - `/tmp/gotth-webhooks-1defba3.coverage.log`, SHA-256
-    `685a33dc5670137ca6728f377eb7ec5c2d4040b61e1e09ddec17c3e58d70b354`.
-  - `/tmp/gotth-webhooks-1defba3.coverage.func`, SHA-256
-    `0702f83d41a77ed8a1d38b5b219f796432f5f731aa930d0a0330221bc12fcf77`.
-- Fifty uncached `go test -count=1 -race ./...` runs after repairs — PASS.
-- Exact repair-source endpoint fuzz — PASS, 79,297 executions/5 seconds.
-- Exact repair-source signing fuzz — PASS, 71,456 executions/5 seconds.
-- External consumer `go test -mod=readonly ./...` in
-  `/tmp/gotth-webhooks-consumer` — PASS.
-- Benchmark command and raw hash are in `docs/performance.md`.
+No relevant changed-surface coverage gap remains. Repository-wide uncovered
+branches are unchanged and lie outside this repair; the source-level total is
+97.3%. Performance evidence remains an uncontrolled-host observation. No
+database/recorder adapter is invented here.
 
-- Detached clean clone of pre-repair commit `338b885` passed `make verify`;
-  the rejected candidate did not have committed exact-final evidence.
-- Performance exact-source artifact and uncontrolled-host variance are in
-  `docs/performance.md`.
-
-The earlier internal cold Judge missed the independent findings and is
-superseded for admission purposes. This evidence does not mark the feature
-done.
+The separate admission blocker remains: a concrete consumer must implement the
+authorized product contract, verify behavior against its durable receipt and
+scheduling boundaries, and pin an exact dependency. No local fixture can fake
+that proof.
