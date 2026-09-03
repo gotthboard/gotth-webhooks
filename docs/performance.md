@@ -26,23 +26,23 @@ semantics and provide matched evidence before claiming an overall speedup.
 - Ten sample means per workload; nearest-rank percentiles. With ten samples,
   p95 and p99 are both the maximum and are coarse.
 - Raw exact-source output at
-  `f0d4008102380ad135e4a2d32190b8470af0fef8`:
-  `/tmp/gotth-webhooks-f0d4008.benchmark.txt`, SHA-256
-  `227104feb824d0481a73510edaa7604d974565f9ab62e7af47297ab868b13ed4`.
+  `62894967d7f2c8760d816d3f6d0c57928c8cab67`:
+  `/tmp/gotth-webhooks-6289496.benchmark.txt`, SHA-256
+  `1b94650cbbdae3d5f0b2a8782aa66cb5b8edff1df320353ace8e68bc115ff13b`.
 
 ## Results
 
 | Workload | p50 | p95 | p99 | p50 throughput | Bytes/op range | Allocs/op range |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| empty payload | 8.521 us | 8.713 us | 8.713 us | 117,357.12 ops/s | 4,295..4,299 | 73 |
-| small 1 KiB payload | 13.623 us | 14.180 us | 14.180 us | 73,405.27 ops/s | 5,320..5,330 | 74 |
-| typical 64 KiB payload | 333.318 us | 402.268 us | 402.268 us | 3,000.14 ops/s | 69,923..70,053 | 74 |
-| boundary 1 MiB payload | 5.193189 ms | 5.331998 ms | 5.331998 ms | 192.56 ops/s | 1,054,122..1,056,238 | 76..77 |
-| pathological 64 KiB+1 response | 10.576 us | 10.860 us | 10.860 us | 94,553.71 ops/s | 4,480..4,487 | 78 |
+| empty payload | 18.675 us | 24.197 us | 24.197 us | 53,547.52 ops/s | 4,300..4,306 | 73 |
+| small 1 KiB payload | 21.885 us | 29.439 us | 29.439 us | 45,693.40 ops/s | 5,320..5,335 | 74 |
+| typical 64 KiB payload | 559.188 us | 1.223087 ms | 1.223087 ms | 1,788.31 ops/s | 69,993..70,258 | 74 |
+| boundary 1 MiB payload | 9.587198 ms | 10.445094 ms | 10.445094 ms | 104.31 ops/s | 1,055,457..1,057,763 | 77..79 |
+| pathological 64 KiB+1 response | 13.822 us | 18.092 us | 18.092 us | 72,348.43 ops/s | 4,483..4,489 | 78 |
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection
 proves bounded work and failure, not network latency. Exact-source payload
-throughput ranged from 162.92 to 203.50 MB/s across typical and boundary payload
+throughput ranged from 53.58 to 159.76 MB/s across typical and boundary payload
 samples.
 
 Earlier runs on the same uncontrolled shared host produced materially different

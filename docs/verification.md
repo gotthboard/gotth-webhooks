@@ -2,35 +2,40 @@
 
 Independent orchestrator review rejected exact commit
 `a5a3b1060989f220bf97c4733a3248ac4c7e9130`. Findings 2 through 9 are repaired
-at exact source tip `f0d4008102380ad135e4a2d32190b8470af0fef8` (source batch
+at exact source tip `62894967d7f2c8760d816d3f6d0c57928c8cab67` (source batch
 `8516e191623380c642a26a65fa47d7c812b69c51` plus cold-review repair
 `b34880e2b1c94eb20528aab9f69b3a669c5f3362` and permanent-error correction
-`f0d4008102380ad135e4a2d32190b8470af0fef8`).
+`f0d4008102380ad135e4a2d32190b8470af0fef8`). Independent post-repair review
+then rejected evidence HEAD `8696c6ebeebb0111f070d10d9b98768df066c932`
+for blanket exhausted-dial retry classification and two false complexity
+contracts; `6289496` repairs those narrow findings.
 
 Exact source-tip evidence under Go 1.26.6-X:nodwarf5, Linux amd64:
 
 - `make verify` — PASS.
 - Uncached `go test -mod=readonly -count=1 -race -coverprofile=... ./...` —
-  PASS, 95.8% statements.
+  PASS, 96.5% statements.
 - Fifty uncached full race runs — PASS.
-- Endpoint fuzz — PASS, 81,989 executions/5 seconds.
-- Signing fuzz — PASS, 61,895 executions/5 seconds.
+- Endpoint fuzz — PASS, 69,826 executions/5 seconds.
+- Signing fuzz — PASS, 56,792 executions/5 seconds.
 - Detached clone at the exact object with a new empty `GOCACHE` ran
-  `make verify` — PASS, clean worktree, 95.8% statements.
+  `make verify` — PASS, clean worktree, 96.5% statements.
 - Synthetic external module `go test -mod=readonly -count=1 ./...` — PASS.
 - Exact performance matrix and raw hash are in `performance.md`.
-- Internal cold passes found and repaired ASCII-OWS/concurrency wording and
-  false permanent-status reporting. Fresh pass 4 is source-CLEAN for technical
-  findings 2 through 9.
+- Internal cold passes found and repaired ASCII-OWS/concurrency wording, false
+  permanent-status reporting, exhausted-dial classification, and two cost
+  contracts. Fresh source pass 7 is CLEAN for the technical scope.
 
 Coverage artifacts and hashes:
 
-- `/tmp/gotth-webhooks-f0d4008.coverage.out` —
-  `ced87114ceb4a71b8c0920c8453cb104e743fe538f0d532b2c383f2d38950cd0`.
-- `/tmp/gotth-webhooks-f0d4008.coverage.log` —
-  `306a4e4e576feee7253c40d2346bce7faa613b33eded66054ee6a3a90cd221f3`.
-- `/tmp/gotth-webhooks-f0d4008.coverage.func` —
-  `b1dfa157cae2728bd4699ad3971f09833603faff43e1ce173d37890c9bdf635a`.
+- `/tmp/gotth-webhooks-6289496.coverage.out` —
+  `626b1fbe8b8bc4ee3c6f7bdf71f9026f51455a3e4671c73c653ba7f3cd7fda10`.
+- `/tmp/gotth-webhooks-6289496.coverage.log` —
+  `9cba9d76f5574b683031e61395a8f6a7557ee0ab44f55d1cfdd6245ed10db7ca`.
+- `/tmp/gotth-webhooks-6289496.coverage.func` —
+  `5597984a4f783ad1ecf6254eefd28d00380dfb62cd3d16854358a3ee387dc070`.
+- `/tmp/gotth-webhooks-6289496.race50.log` —
+  `99f2c29650aee72ea154664861664b09fb229c5e36d0176feef2ee09c83e3781`.
 
 The external module at `/tmp/gotth-webhooks-consumer` is a synthetic compile
 fixture. It proves public syntax only; it is not a real product consumer,

@@ -127,6 +127,40 @@ Risks / non-goals:
 - The public API still lacks a real consumer contract. The feature remains
   `in_progress`, unreleased, unadmitted, and blocked on owner/product input.
 
+### 2026-09-03 13:03 CDT — Close post-repair dial classification gaps
+
+Commit: `62894967d7f2c8760d816d3f6d0c57928c8cab67`
+
+Affected files:
+
+- `pkg/webhooks/{network,retry,values}.go`
+- safe-dial classification tests
+- architecture, implementation, verification, performance, and workflow
+  evidence
+
+Explanation:
+
+Stop treating every exhausted address dial as retryable. Resolver, dialer, and
+dispatcher failures now use one explicit typed transient allowlist; local
+resource/configuration and unknown errors are permanent and redacted. A mixed
+address set is retryable only when every observed failure is admitted
+transient. Correct the successful `canonicalPort` auxiliary-space contract and
+the saturation-sensitive `retryDelay` lower/tight bounds.
+
+Verification:
+
+- exact source-tip focused/full race tests, 96.5% coverage, fifty uncached race
+  runs, fuzz, fresh-cache clean clone, synthetic external compile, benchmark,
+  and cold source review
+
+Risks / non-goals:
+
+- The permanent-dominates mixed policy fails closed and can suppress retries
+  when another address had a transient failure; it prevents deterministic
+  local failure from being hidden by an alternate address.
+- The real-consumer blocker remains open. This does not admit or release the
+  API.
+
 ### 2026-09-03 00:42 CDT — Establish GitHub public distribution
 
 Commit: `0bba05927d7922e693a6211ffc41ee3ab91ba451`

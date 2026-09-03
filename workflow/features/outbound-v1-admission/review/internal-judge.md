@@ -120,3 +120,25 @@ The stable permanent sentinel now covers every permanent delivery failure, and
 fake transport/protocol status text is gone. Findings 2 through 9 are source-
 CLEAN. Exact gates pass at this object. Finding 1 remains the unchanged owner/
 product blocker.
+
+## Independent post-repair review — NARROW AND RETRY
+
+Reviewed commit: `8696c6ebeebb0111f070d10d9b98768df066c932`
+
+The external maintainer Judge found one remaining retry-classification escape
+hatch and two false complexity contracts. Exhausted address dials were all
+marked transient, including deterministic/local and unknown failures;
+`canonicalPort` falsely claimed body-sized auxiliary space; and `retryDelay`
+falsely claimed work lower-bounded by attempt count. The consumer blocker
+remained independently decisive.
+
+## Repair pass 7 — SOURCE CLEAN / ADMISSION BLOCKED
+
+Reviewed commit: `62894967d7f2c8760d816d3f6d0c57928c8cab67`
+
+Exhausted dial errors now use the shared typed allowlist and a documented
+permanent-dominates mixed policy, with cancellation preserved and permanent
+details redacted. Required failure classes and one-attempt delivery behavior
+are directly tested. Both cost contracts now delegate unknown library costs
+symbolically and avoid false lower/tight bounds. Exact source gates pass.
+Finding 1 remains the unchanged consumer-contract blocker.
