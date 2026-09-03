@@ -493,6 +493,38 @@ Risks / non-goals:
 - This repairs evidence provenance only; it does not rewrite Git history or
   change implementation, admission, or release state.
 
+### 2026-09-03 14:17:24 CDT — Record content-type repair evidence
+
+Commit: `905b4ddd1f7e6bcba5a8e25e7313eff26e886dd0`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record exact-candidate coverage, race, fuzz, performance, clean-clone,
+provenance-audit, external syntax, and internal review evidence for
+`94f2b7d080d9959af3c1d23a5a4349b555ee240b`. Preserve the real-consumer
+blocker and unreleased workflow state.
+
+Verification:
+
+- exact commands, revisions, artifact paths, hashes, and review result in the
+  evidence commit
+
+Risks / non-goals:
+
+- Evidence does not admit, release, push, tag, deploy, or establish
+  compatibility for the candidate.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`
