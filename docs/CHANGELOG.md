@@ -127,16 +127,18 @@ Risks / non-goals:
 - The public API still lacks a real consumer contract. The feature remains
   `in_progress`, unreleased, unadmitted, and blocked on owner/product input.
 
-### 2026-09-03 13:03 CDT — Close post-repair dial classification gaps
+### 2026-09-03 12:56:51 CDT — Close post-repair dial classification gaps
 
 Commit: `62894967d7f2c8760d816d3f6d0c57928c8cab67`
 
 Affected files:
 
-- `pkg/webhooks/{network,retry,values}.go`
-- safe-dial classification tests
-- architecture, implementation, verification, performance, and workflow
-  evidence
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `pkg/webhooks/network.go`
+- `pkg/webhooks/network_test.go`
+- `pkg/webhooks/retry.go`
+- `pkg/webhooks/values.go`
 
 Explanation:
 
@@ -160,6 +162,72 @@ Risks / non-goals:
   local failure from being hidden by an alternate address.
 - The real-consumer blocker remains open. This does not admit or release the
   API.
+
+### 2026-09-03 13:06:15 CDT — Record post-repair dial evidence
+
+Commit: `7c3fc0b18018b41a50b94b0d13952f7dba6b5aa0`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record exact-source verification for `6289496`, including coverage, repeated
+race, fuzz, performance, clean-clone, external syntax fixture, and source-review
+results. This historical entry is added after the evidence commit so its object
+ID and actual file scope are recorded without a self-reference placeholder.
+
+Verification:
+
+- exact commands, source revision, artifact paths, and hashes in the evidence
+  commit
+
+Risks / non-goals:
+
+- The evidence commit was subsequently rejected for narrower wire, complexity,
+  and changelog defects. It did not admit or release the API.
+
+### 2026-09-03 13:32:43 CDT — Tighten endpoint and cost contracts
+
+Commit: `7a0a940b10774b66eab3a5badd832181e560226a`
+
+Affected files:
+
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/network.go`
+- `pkg/webhooks/signing.go`
+- `pkg/webhooks/signing_test.go`
+- `pkg/webhooks/values.go`
+- `pkg/webhooks/values_test.go`
+
+Explanation:
+
+Reject explicit empty endpoint ports, publish the exact scheme-inclusive signed
+target grammar and golden vector, add missing retry-wrapper cost contracts, and
+correct all audited early-rejection lower/tight bounds. Omitted ports and
+explicit `:443` remain equivalent.
+
+Verification:
+
+- exact source-tip focused/full race tests, 96.5% coverage, fifty-run race,
+  fuzz, fresh-cache clean clone, synthetic external compile, benchmark, and
+  cold source review
+
+Risks / non-goals:
+
+- This is still an unreleased candidate. The real-consumer contract and pin
+  remain absent and independently block admission.
 
 ### 2026-09-03 00:42 CDT — Establish GitHub public distribution
 

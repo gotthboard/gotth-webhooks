@@ -3,35 +3,36 @@
 Independent orchestrator review rejected exact commit
 `a5a3b1060989f220bf97c4733a3248ac4c7e9130`; its evidence does not support
 admission. Findings 2 through 9 are repaired at exact source tip
-`62894967d7f2c8760d816d3f6d0c57928c8cab67`. Independent post-repair review
-rejected evidence HEAD `8696c6ebeebb0111f070d10d9b98768df066c932`
-for exhausted-dial classification and two cost-contract defects; the new source
-tip repairs them without changing the consumer blocker.
+`7a0a940b10774b66eab3a5badd832181e560226a`. Independent post-repair reviews
+rejected evidence heads `8696c6ebeebb0111f070d10d9b98768df066c932`
+and `7c3fc0b18018b41a50b94b0d13952f7dba6b5aa0` for exhausted-dial,
+wire-specification, empty-port, complexity, and changelog defects. The new
+source tip repairs them without changing the consumer blocker.
 
 Exact source-tip commands and results:
 
 - `make verify` — PASS under Go 1.26.6-X:nodwarf5.
 - `go test -mod=readonly -count=1 -race -coverprofile=... ./...` — PASS,
   96.5%. Artifact hashes:
-  - coverage: `626b1fbe8b8bc4ee3c6f7bdf71f9026f51455a3e4671c73c653ba7f3cd7fda10`;
-  - log: `9cba9d76f5574b683031e61395a8f6a7557ee0ab44f55d1cfdd6245ed10db7ca`;
+  - coverage: `72f5d9ba7613587f4f4cc318ea8d0c4fe4e3924ae774ef2fa744fbfa2bf2ebe8`;
+  - log: `80cd7074ef6734e52f7093509085ef64f64c8bbf16b141492fc7d46a199ff131`;
   - function summary:
-    `5597984a4f783ad1ecf6254eefd28d00380dfb62cd3d16854358a3ee387dc070`.
+    `0c2e57d2444c7451a424e2d3baa35968d72d44bb187bff1d9c26dbe37171479f`.
 - Fifty uncached full race runs — PASS; log SHA-256
-  `99f2c29650aee72ea154664861664b09fb229c5e36d0176feef2ee09c83e3781`.
-- `FuzzParseEndpoint` — PASS, 69,826 executions/5 seconds.
-- `FuzzSignedRequestDeterministic` — PASS, 56,792 executions/5 seconds.
-- Detached clone `/tmp/gotth-webhooks-6289496-clean.GzxYIp/repo`, detached at
-  exact object `62894967d7f2c8760d816d3f6d0c57928c8cab67`, with fresh empty
+  `3c318c052b4ecbd04a9e80c614d49f8988e54d51027485bce4f245caa17c96c8`.
+- `FuzzParseEndpoint` — PASS, 64,799 executions/5 seconds.
+- `FuzzSignedRequestDeterministic` — PASS, 76,791 executions/5 seconds.
+- Detached clone `/tmp/gotth-webhooks-7a0a940-clean.fnWUVi/repo`, detached at
+  exact object `7a0a940b10774b66eab3a5badd832181e560226a`, with fresh empty
   `GOCACHE`: `make verify` PASS at 96.5%; tracked status clean.
 - Synthetic module `/tmp/gotth-webhooks-consumer`:
   `go test -mod=readonly -count=1 ./...` — PASS. This is syntax evidence only,
   not a real consumer or compatibility pin.
 - Exact benchmark raw SHA-256:
-  `1b94650cbbdae3d5f0b2a8782aa66cb5b8edff1df320353ace8e68bc115ff13b`.
+  `90fca519b715bc1e0571460acf4b8e1c1f504cf3393b1554e7b7acb095976e97`.
 - Internal cold passes found ASCII-OWS/concurrency wording, false permanent
-  status reporting, exhausted-dial classification, and two cost-contract
-  defects. Fresh pass 7 is source-CLEAN.
+  status reporting, exhausted-dial classification, exact signed-target and
+  empty-port defects, and cost-contract defects. Fresh pass 10 is source-CLEAN.
 
 The exact clean-clone commit and source object are identical. The following
 older evidence is retained only as rejected-history provenance.

@@ -142,3 +142,26 @@ details redacted. Required failure classes and one-attempt delivery behavior
 are directly tested. Both cost contracts now delegate unknown library costs
 symbolically and avoid false lower/tight bounds. Exact source gates pass.
 Finding 1 remains the unchanged consumer-contract blocker.
+
+## Independent cold pass 3 — NARROW AND RETRY
+
+Reviewed commit: `7c3fc0b18018b41a50b94b0d13952f7dba6b5aa0`
+
+The published wire grammar called the scheme-inclusive signed target an
+authority and omitted the literal `https://` bytes. Two retry-wrapper methods
+lacked cost contracts, several early-rejection paths retained false
+proportional lower/tight bounds, and the changelog attributed evidence files to
+the source commit rather than the evidence commit. An orchestrator checkpoint
+also proved explicit empty ports were accepted as if omitted.
+
+## Repair pass 10 — SOURCE CLEAN / ADMISSION BLOCKED
+
+Reviewed commit: `7a0a940b10774b66eab3a5badd832181e560226a`
+
+Explicit empty DNS/IPv6 ports now fail before side effects while omitted and
+`:443` forms sign identically. Wire grammar and the documented/source golden
+vector agree on the absolute HTTPS target bytes. Missing and false cost
+contracts were repaired across the early-rejection audit. Exact source gates
+pass. Changelog attribution is handled separately in evidence history so it
+can name existing commits without self-reference. Finding 1 remains the
+unchanged consumer-contract blocker.

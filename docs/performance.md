@@ -26,23 +26,23 @@ semantics and provide matched evidence before claiming an overall speedup.
 - Ten sample means per workload; nearest-rank percentiles. With ten samples,
   p95 and p99 are both the maximum and are coarse.
 - Raw exact-source output at
-  `62894967d7f2c8760d816d3f6d0c57928c8cab67`:
-  `/tmp/gotth-webhooks-6289496.benchmark.txt`, SHA-256
-  `1b94650cbbdae3d5f0b2a8782aa66cb5b8edff1df320353ace8e68bc115ff13b`.
+  `7a0a940b10774b66eab3a5badd832181e560226a`:
+  `/tmp/gotth-webhooks-7a0a940.benchmark.txt`, SHA-256
+  `90fca519b715bc1e0571460acf4b8e1c1f504cf3393b1554e7b7acb095976e97`.
 
 ## Results
 
 | Workload | p50 | p95 | p99 | p50 throughput | Bytes/op range | Allocs/op range |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| empty payload | 18.675 us | 24.197 us | 24.197 us | 53,547.52 ops/s | 4,300..4,306 | 73 |
-| small 1 KiB payload | 21.885 us | 29.439 us | 29.439 us | 45,693.40 ops/s | 5,320..5,335 | 74 |
-| typical 64 KiB payload | 559.188 us | 1.223087 ms | 1.223087 ms | 1,788.31 ops/s | 69,993..70,258 | 74 |
-| boundary 1 MiB payload | 9.587198 ms | 10.445094 ms | 10.445094 ms | 104.31 ops/s | 1,055,457..1,057,763 | 77..79 |
-| pathological 64 KiB+1 response | 13.822 us | 18.092 us | 18.092 us | 72,348.43 ops/s | 4,483..4,489 | 78 |
+| empty payload | 92.875 us | 173.101 us | 173.101 us | 10,767.16 ops/s | 4,295..4,314 | 73 |
+| small 1 KiB payload | 144.222 us | 176.175 us | 176.175 us | 6,933.75 ops/s | 5,313..5,343 | 74 |
+| typical 64 KiB payload | 3.448488 ms | 3.697285 ms | 3.697285 ms | 289.98 ops/s | 69,853..70,125 | 74 |
+| boundary 1 MiB payload | 54.951676 ms | 58.882721 ms | 58.882721 ms | 18.20 ops/s | 1,053,388..1,062,300 | 76..83 |
+| pathological 64 KiB+1 response | 120.415 us | 365.591 us | 365.591 us | 8,304.61 ops/s | 4,473..4,537 | 78 |
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection
 proves bounded work and failure, not network latency. Exact-source payload
-throughput ranged from 53.58 to 159.76 MB/s across typical and boundary payload
+throughput ranged from 17.73 to 19.73 MB/s across typical and boundary payload
 samples.
 
 Earlier runs on the same uncontrolled shared host produced materially different
