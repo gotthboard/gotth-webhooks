@@ -85,12 +85,13 @@ Only explicitly typed transient failures are retryable: deadline timeouts,
 safe-dialer-marked transient lookup/dial failures, selected connection errno
 values, and EOF/truncation. Destination rejection, certificate validation, TLS
 alerts/record failures, and HTTP protocol/header-limit failures are permanent.
-An unknown transport error is permanent when no attempt deadline expired.
+An unknown transport error is permanent even if the attempt context also
+expires; context readiness alone is not causal evidence.
 Caller cancellation remains canceled and has
 first precedence. After that check, an observed destination, certificate,
 TLS-record/alert, or HTTP-protocol failure remains permanent even when the
 per-attempt deadline expires at the same edge; the attempt-deadline fallback
-applies only after those observed permanent classes are excluded.
+requires the returned error chain itself to carry deadline/cancellation.
 When every validated address fails to dial, the aggregate is retryable only if
 every observed dial failure belongs to the transient allowlist; any local
 resource/configuration or unknown failure in a mixed set makes the aggregate

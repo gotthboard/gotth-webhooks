@@ -1,12 +1,14 @@
 package webhooks
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -130,6 +132,14 @@ func TestDeliverExhaustsAllowlistedTransportFailures(t *testing.T) {
 func TestDeliverDeterministicTransportFailuresArePermanent(t *testing.T) {
 	t.Parallel()
 
+	headerLimitError := captureHTTPTransportError(t, "HTTP/1.1 200 OK\r\nX-Large: "+strings.Repeat("x", 512)+"\r\n\r\n", 64)
+	if !strings.Contains(headerLimitError.Error(), "server response headers exceeded") {
+		t.Fatalf("header-limit transport error=%v", headerLimitError)
+	}
+	malformedResponseError := captureHTTPTransportError(t, "NOT-HTTP\r\n\r\n", maxResponseHeaderBytes)
+	if !strings.Contains(malformedResponseError.Error(), "malformed HTTP response") {
+		t.Fatalf("malformed-response transport error=%v", malformedResponseError)
+	}
 	tests := []struct {
 		name string
 		err  error
@@ -137,8 +147,8 @@ func TestDeliverDeterministicTransportFailuresArePermanent(t *testing.T) {
 		{"unknown", errors.New("unknown transport failure")},
 		{"certificate", &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}},
 		{"TLS record", tls.RecordHeaderError{Msg: "not TLS"}},
-		{"protocol", &http.ProtocolError{ErrorString: "malformed response"}},
-		{"header limit", http.ErrHeaderTooLong},
+		{"real malformed response", malformedResponseError},
+		{"real response header limit", headerLimitError},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -162,6 +172,8 @@ func TestClassifyAttemptFailurePrecedenceAtAttemptDeadline(t *testing.T) {
 
 	attemptCtx, cancelAttempt := context.WithDeadline(context.Background(), time.Unix(0, 0))
 	defer cancelAttempt()
+	headerLimitError := captureHTTPTransportError(t, "HTTP/1.1 200 OK\r\nX-Large: "+strings.Repeat("x", 512)+"\r\n\r\n", 64)
+	malformedResponseError := captureHTTPTransportError(t, "NOT-HTTP\r\n\r\n", maxResponseHeaderBytes)
 	tests := []struct {
 		name    string
 		err     error
@@ -172,10 +184,11 @@ func TestClassifyAttemptFailurePrecedenceAtAttemptDeadline(t *testing.T) {
 		{name: "certificate", err: &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}, outcome: OutcomePermanent, code: ErrorTransport},
 		{name: "TLS record", err: tls.RecordHeaderError{Msg: "not TLS"}, outcome: OutcomePermanent, code: ErrorTransport},
 		{name: "TLS alert", err: tls.AlertError(40), outcome: OutcomePermanent, code: ErrorTransport},
-		{name: "protocol", err: &http.ProtocolError{ErrorString: "malformed response"}, outcome: OutcomePermanent, code: ErrorTransport},
-		{name: "header limit", err: http.ErrLineTooLong, outcome: OutcomePermanent, code: ErrorTransport},
-		{name: "transient", err: syscall.ETIMEDOUT, outcome: OutcomeRetryable, code: ErrorTimeout},
-		{name: "unknown", err: errors.New("unknown transport failure"), outcome: OutcomeRetryable, code: ErrorTimeout},
+		{name: "real malformed response", err: malformedResponseError, outcome: OutcomePermanent, code: ErrorTransport},
+		{name: "real response header limit", err: headerLimitError, outcome: OutcomePermanent, code: ErrorTransport},
+		{name: "actual attempt deadline", err: fmt.Errorf("transport: %w", context.DeadlineExceeded), outcome: OutcomeRetryable, code: ErrorTimeout},
+		{name: "transient without causal deadline", err: syscall.ETIMEDOUT, outcome: OutcomeRetryable, code: ErrorTransport},
+		{name: "unknown without causal deadline", err: errors.New("unknown transport failure"), outcome: OutcomePermanent, code: ErrorTransport},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -195,10 +208,12 @@ func TestClassifyAttemptFailureCallerCancellationDominatesDeadlineAndPermanentEr
 	cancelParent()
 	attemptCtx, cancelAttempt := context.WithDeadline(parent, time.Unix(0, 0))
 	defer cancelAttempt()
+	malformedResponseError := captureHTTPTransportError(t, "NOT-HTTP\r\n\r\n", maxResponseHeaderBytes)
 	for _, err := range []error{
 		fmt.Errorf("wrapped: %w", ErrDestination),
 		&tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}},
-		&http.ProtocolError{ErrorString: "malformed response"},
+		malformedResponseError,
+		fmt.Errorf("transport: %w", context.DeadlineExceeded),
 		syscall.ETIMEDOUT,
 	} {
 		outcome, code := classifyAttemptFailure(parent, attemptCtx, err)
@@ -578,6 +593,51 @@ func response(status int, body, retryAfter string) *http.Response {
 		header.Set("Retry-After", retryAfter)
 	}
 	return &http.Response{StatusCode: status, Header: header, Body: io.NopCloser(strings.NewReader(body))}
+}
+
+func captureHTTPTransportError(t *testing.T, rawResponse string, maxHeaderBytes int64) error {
+	t.Helper()
+
+	clientConn, serverConn := net.Pipe()
+	transport := &http.Transport{
+		DialContext: func(context.Context, string, string) (net.Conn, error) {
+			return clientConn, nil
+		},
+		MaxResponseHeaderBytes: maxHeaderBytes,
+	}
+	type serverResult struct {
+		readErr  error
+		writeErr error
+	}
+	serverDone := make(chan serverResult, 1)
+	go func() {
+		defer serverConn.Close()
+		request, err := http.ReadRequest(bufio.NewReader(serverConn))
+		if err != nil {
+			serverDone <- serverResult{readErr: err}
+			return
+		}
+		_ = request.Body.Close()
+		_, err = io.WriteString(serverConn, rawResponse)
+		serverDone <- serverResult{writeErr: err}
+	}()
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://example.test/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, transportErr := transport.RoundTrip(request)
+	if response != nil && response.Body != nil {
+		_ = response.Body.Close()
+	}
+	transport.CloseIdleConnections()
+	server := <-serverDone
+	if server.readErr != nil {
+		t.Fatalf("server failed to read transport request: %v", server.readErr)
+	}
+	if transportErr == nil {
+		t.Fatal("transport unexpectedly accepted malformed response")
+	}
+	return transportErr
 }
 
 type contextReader struct{ ctx context.Context }

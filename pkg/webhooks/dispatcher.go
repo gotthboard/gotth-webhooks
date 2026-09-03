@@ -49,14 +49,21 @@ func newDispatcher(config validatedConfig, deps dependencies) *Dispatcher {
 }
 
 // Deliver performs bounded signed attempts and records each actual attempt
-// before retry or return. All-input CPU time is O(V(e,c)+A*(b+r+m)), Omega(1),
-// with no single tight bound; auxiliary space is O(W(e,c)+b+m+T(b,r)),
-// Omega(1), also with no single tight bound. V/W are delegated endpoint and
-// content validation costs; T is delegated transport buffering; A is configured
-// attempts, b is body bytes, r is at most MaxResponseBytes+1, and m is bounded
-// request metadata. On the accepted-message path validation copies and hashes
-// b before attempts. Network, recorder, timer, DNS, and TLS costs are delegated
-// and bounded by configured contexts and transport limits.
+// before retry or return. All-input CPU time is
+// O(Vt(e,c,b)+sum(i=1..A)(b+r_i+m+w_i+Pt(i,q_i)+Tt_i+Bt_i+Rt_i+Wt_i)), Omega(1), with no
+// input-independent tight bound; auxiliary space is
+// O(Vs(e,c,b)+b+m+max(i=1..A)(Ts_i+Bs_i+Rs_i+Ps(q_i)+Ws_i+d_i)), Omega(1), also with no
+// input-independent tight bound. A is actual attempts (at most configured
+// MaxAttempts); e, c, and b are endpoint, content-type, and body bytes; r_i is
+// bounded response bytes; m is bounded request metadata; q_i is Retry-After
+// bytes; w_i is total error-tree nodes visited by all errors.Is/As calls; and
+// d_i is maximum joined-error depth. Vt/Vs are validation, Pt/Ps are
+// retry-delay/header parsing, Tt/Ts are RoundTripper CPU/allocation, Bt/Bs are
+// response-body Read/Close CPU/allocation, Rt/Rs are Recorder CPU/allocation,
+// and Wt/Ws are retry-wait CPU/allocation. Sum and maximum attempt terms are
+// zero when A is zero. Network, response-body, recorder, timer, DNS, TLS, and
+// wait I/O/latency are delegated; contexts bound cooperative implementations,
+// not a Recorder or body implementation that violates its contract.
 func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 	if ctx == nil {
 		return Result{}, fmt.Errorf("%w: nil context", ErrInvalid)
@@ -121,13 +128,16 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 }
 
 // attempt executes one request and returns only bounded classification data.
-// All-input CPU time is O(b+r+m), Omega(1), with no input-independent tight
-// bound; an admitted built request hashes all b body bytes. Auxiliary space is
-// O(m+T(b,r)), Omega(1), with no single tight bound: m is request metadata, r
-// is bounded response data, and T is request/response buffering delegated to
-// RoundTripper.
+// All-input CPU time is O(b+r+m+w+Tt(b,r,m)+Bt(r)), Omega(1), with no
+// input-independent tight bound; auxiliary space is O(m+Ts(b,r,m)+Bs(r)+d),
+// Omega(1), with no input-independent tight bound. b is body bytes, r is
+// bounded response bytes, m is bounded request metadata, w is total error-tree
+// nodes visited by errors.Is/As calls, and d is maximum joined-error depth.
+// Tt/Ts are delegated RoundTripper CPU/allocation and buffering costs; Bt/Bs
+// are delegated response-body Read/Close CPU/allocation costs.
 // The request body is already owned and is hashed/read without another body
-// copy. Transport latency is delegated and bounded by attemptTimeout.
+// copy. Transport and response-body I/O latency are delegated and cooperatively
+// bounded by attemptTimeout.
 func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attempt int) (Receipt, string, error) {
 	started := d.now().UTC()
 	receipt := Receipt{DeliveryID: msg.deliveryID, DeliveryFingerprint: msg.fingerprint, Attempt: attempt, RequestTimestamp: started.Unix(), StartedAt: started}
@@ -170,9 +180,10 @@ func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attem
 }
 
 // classifyAttemptFailure applies cancellation, deterministic-failure, and
-// transient allowlist precedence. Complexity: time O(w), Omega(1), no tight
-// bound; auxiliary space O(1), Omega(1), tight Theta(1); w is wrapped-error
-// depth delegated to errors.Is/As.
+// transient allowlist precedence. Complexity: time O(w), Omega(1), no
+// input-independent tight bound; auxiliary space O(d), Omega(1), no
+// input-independent tight bound; w is total wrapped/joined error nodes visited
+// by all delegated errors.Is/As traversals and d is maximum join-tree depth.
 func classifyAttemptFailure(parent, attemptCtx context.Context, err error) (Outcome, ErrorCode) {
 	if parent.Err() != nil {
 		return OutcomeCanceled, ErrorCanceled
@@ -183,7 +194,8 @@ func classifyAttemptFailure(parent, attemptCtx context.Context, err error) (Outc
 	if isDeterministicTransportFailure(err) {
 		return OutcomePermanent, ErrorTransport
 	}
-	if errors.Is(attemptCtx.Err(), context.DeadlineExceeded) {
+	if errors.Is(err, context.DeadlineExceeded) ||
+		(errors.Is(err, context.Canceled) && errors.Is(attemptCtx.Err(), context.DeadlineExceeded)) {
 		return OutcomeRetryable, ErrorTimeout
 	}
 	if isRetryableTransportFailure(err) {
@@ -193,9 +205,10 @@ func classifyAttemptFailure(parent, attemptCtx context.Context, err error) (Outc
 }
 
 // record attempts durable receipt persistence with caller values preserved but
-// cancellation detached. Complexity: CPU time and auxiliary space O(1),
-// Omega(1), tight Theta(1); recorder I/O is delegated and bounded by
-// receiptTimeout.
+// cancellation detached. Complexity: CPU time O(1+Rt), Omega(1), with no
+// input-independent tight bound; auxiliary space O(1+Rs), Omega(1), with no
+// input-independent tight bound. Rt/Rs and recorder I/O/latency are delegated
+// to Recorder; receiptTimeout cooperatively bounds conforming implementations.
 func (d *Dispatcher) record(parent context.Context, receipt Receipt) error {
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(parent), d.config.receiptTimeout)
 	defer cancel()

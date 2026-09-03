@@ -42,14 +42,21 @@ var errDialFailure = errors.New("dial failure")
 
 // DialContext resolves a hostname, rejects an entire unsafe or oversized
 // answer, and passes only validated numeric addresses to the underlying
-// dialer. Complexity: CPU time O(n+a*(p+w)), Omega(1), no input-independent
-// tight Theta bound; auxiliary space O(n+a+d), Omega(1), no single tight
-// bound. n is dial-address bytes scanned or materialized by address parsing
-// and numeric dial-target construction; a is the resolved address count; p is
-// the fixed denied-prefix count; w is the maximum number of wrapped/joined
-// error nodes visited by classification; and d is the maximum joined-error
-// traversal depth. Resolver and dial I/O latency and resolver-result allocation
-// are delegated and externally bounded by context and maxResolvedAddresses.
+// dialer. Complexity: CPU time
+// O(n+Rt(n,A)+w_r+sum(i=1..a)(p+j_i+w_i+Dt_i)), Omega(1), with no
+// input-independent tight bound; auxiliary space
+// O(n+Rs(n,A)+a+d_r+max(i=1..a)(j_i+d_i+Ds_i)), Omega(1), with no
+// input-independent tight bound.
+// n is dial-address bytes, A is the full resolver-returned address count, a is
+// the post-admission count (zero or at most maxResolvedAddresses), p is the
+// fixed denied-prefix count, w_r/d_r are nodes/depth traversed while classifying
+// a resolver error, j_i is one numeric dial-target's bytes, w_i is error nodes
+// visited for one dial failure, and d_i is its maximum join-tree depth. The
+// maximum attempt term is zero when a is zero. Rt/Rs and Dt/Ds are
+// delegated resolver and dialer CPU/allocation costs; resolver/dialer I/O
+// latency is also delegated and cooperatively context-bounded. The 16-address
+// guard runs after resolution: it bounds validation/dial attempts, not resolver
+// CPU, allocation, I/O, or the already returned A-address slice.
 func (d safeDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	if network != "tcp" && network != "tcp4" && network != "tcp6" {
 		return nil, fmt.Errorf("%w: unsupported network", ErrDestination)

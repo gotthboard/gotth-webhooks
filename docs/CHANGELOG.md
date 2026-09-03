@@ -624,7 +624,7 @@ Risks / non-goals:
 
 ### 2026-09-03 15:11:32 CDT — Record deadline-precedence repair evidence
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `3eafee7e28eb806fab9e990c39224ef27a7c1e0c`
 
 Affected files:
 
@@ -656,6 +656,41 @@ Risks / non-goals:
 - This evidence does not claim a clean independent review, admission, release,
   compatibility, or consumer behavior.
 - No push, PR, tag, deployment, live request, or remote mutation is performed.
+
+### 2026-09-03 15:45:00 CDT — Require causal deadline classification
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/network.go`
+
+Explanation:
+
+Classify an attempt timeout only when the returned transport error chain carries
+deadline or cancellation evidence. Keep real malformed-response and
+response-header-limit failures permanent even if the attempt context happens to
+expire at the same edge. Replace synthetic transport sentinels in the deadline
+precedence regressions with errors captured from the production `net/http`
+transport. Account explicitly for joined-error traversal, response-body,
+resolver, dialer, retry parsing, and Recorder costs.
+
+Verification:
+
+- focused real-transport deadline-precedence race tests
+- full source and retained-evidence gates recorded separately
+
+Risks / non-goals:
+
+- Causal deadline errors remain retryable; typed transient dial and transport
+  failures retain their existing allowlist behavior.
+- The real-consumer contract and dependency pin remain separate admission
+  blockers. No push, tag, release, deployment, or live request is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
