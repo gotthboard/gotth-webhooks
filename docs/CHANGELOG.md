@@ -95,6 +95,35 @@ Risks / non-goals:
   review later rejected this candidate; the rejection is not superseded merely
   by local source repairs.
 
+### 2026-09-03 12:05 CDT — Repair independent-review boundaries
+
+Commit: `b34880e2b1c94eb20528aab9f69b3a669c5f3362` (source tip; includes repair
+batch `8516e191623380c642a26a65fa47d7c812b69c51`)
+
+Affected files:
+
+- address, query, transport, retry, receipt, and complexity source/tests
+- public boundary, security, workflow, and evidence documents
+
+Explanation:
+
+Pin reject-all-special address policy to the 2025-10-09 IANA registries, call
+the owned RoundTripper directly so malformed redirects remain classifiable,
+use a typed transient retry allowlist with deterministic and unknown failures
+permanent, validate raw-query grammar, classify the stable fingerprint as
+sensitive, parse Retry-After without overflow, require concurrent Recorders,
+and correct test/evidence/cost claims.
+
+Verification:
+
+- exact source-tip format, vet, race, race50, 95.8% coverage, fuzz, fresh-cache
+  clean clone, synthetic external compile, benchmark, and internal cold review
+
+Risks / non-goals:
+
+- The public API still lacks a real consumer contract. The feature remains
+  `in_progress`, unreleased, unadmitted, and blocked on owner/product input.
+
 ### 2026-09-03 00:42 CDT — Establish GitHub public distribution
 
 Commit: `0bba05927d7922e693a6211ffc41ee3ab91ba451`

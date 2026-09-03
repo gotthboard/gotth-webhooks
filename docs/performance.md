@@ -25,27 +25,31 @@ semantics and provide matched evidence before claiming an overall speedup.
   after exactly the bounded read.
 - Ten sample means per workload; nearest-rank percentiles. With ten samples,
   p95 and p99 are both the maximum and are coarse.
-- Raw exact-source output: `/tmp/gotth-webhooks-1defba3.benchmark.txt`,
-  SHA-256 `ef9f5ac50e8d4b38b085323769d8c3b820e45a1d459a45d9d8d5f7c8ddbaec87`.
+- Raw exact-source output at
+  `b34880e2b1c94eb20528aab9f69b3a669c5f3362`:
+  `/tmp/gotth-webhooks-b34880e.benchmark.txt`, SHA-256
+  `75e67051b263c0f08616620b94d0970e153141cc7ba16f5739c97ced95d4e74b`.
 
 ## Results
 
-| Workload | p50 | p95 | p99 | p50 throughput | Bytes/op | Allocs/op |
+| Workload | p50 | p95 | p99 | p50 throughput | Bytes/op range | Allocs/op range |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| empty payload | 108.519 us | 202.378 us | 202.378 us | 9,214.95 ops/s | 5,005 | 79 |
-| small 1 KiB payload | 283.566 us | 340.730 us | 340.730 us | 3,526.52 ops/s | 6,032 | 80 |
-| typical 64 KiB payload | 3.657090 ms | 5.568866 ms | 5.568866 ms | 273.44 ops/s | 71,091 | 80 |
-| boundary 1 MiB payload | 71.510554 ms | 93.286854 ms | 93.286854 ms | 13.98 ops/s | 1,054,084 | 82 |
-| pathological 64 KiB+1 response | 140.196 us | 171.925 us | 171.925 us | 7,132.87 ops/s | 5,197 | 84 |
+| empty payload | 103.159 us | 165.168 us | 165.168 us | 9,693.78 ops/s | 4,289..4,327 | 73 |
+| small 1 KiB payload | 243.397 us | 344.184 us | 344.184 us | 4,108.51 ops/s | 5,324..5,360 | 74 |
+| typical 64 KiB payload | 3.589327 ms | 5.995531 ms | 5.995531 ms | 278.60 ops/s | 69,854..70,935 | 74..75 |
+| boundary 1 MiB payload | 72.941642 ms | 108.430113 ms | 108.430113 ms | 13.71 ops/s | 1,057,840..1,062,816 | 79..85 |
+| pathological 64 KiB+1 response | 141.711 us | 184.523 us | 184.523 us | 7,056.62 ops/s | 4,484..4,501 | 78 |
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection
 proves bounded work and failure, not network latency. Exact-source payload
-throughput ranged from 3.01 to 18.93 MB/s across samples.
+throughput ranged from 9.67 to 20.00 MB/s across typical and boundary payload
+samples.
 
-An earlier run on the same uncontrolled shared host produced p50 values 8.4 to
-17.8 times faster while allocations remained effectively unchanged. No source
-optimization explains that difference; concurrent host load does. The raw
-earlier artifact remains `/tmp/gotth-webhooks-benchmark.txt` with SHA-256
+Earlier runs on the same uncontrolled shared host produced materially different
+wall times while allocations remained comparatively stable. The correctness
+repair also removed the `http.Client` redirect layer, so its lower allocation
+counts are a mechanism change, not a controlled optimization comparison. The
+original raw artifact remains `/tmp/gotth-webhooks-benchmark.txt` with SHA-256
 `e4d7d750ece5515bb3ac9f9f8db41185c60b00320ace8af45e3e168d7e4de712`.
 Therefore these wall-clock percentiles are environment observations, not a
 performance promise or a reliable regression comparison. Stable allocation

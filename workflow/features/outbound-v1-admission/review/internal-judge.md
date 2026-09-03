@@ -82,3 +82,23 @@ module proves syntax only. Source findings 2 through 9 were independently
 verified and are being repaired, but those repairs cannot turn the candidate
 into an admitted or releasable contract. A fresh internal review and exact
 repair-source evidence are required before handoff.
+
+## Repair pass 1 — NARROW AND RETRY
+
+Reviewed commit: `8516e191623380c642a26a65fa47d7c812b69c51`
+
+The technical orchestrator findings were repaired, but the cold pass found two
+narrow defects: `strings.TrimSpace` accepted non-ASCII whitespace despite the
+ASCII Retry-After grammar, and the public Dispatcher concurrency comment did
+not state its dependence on a concurrency-safe Recorder. No broader rewrite
+was justified.
+
+## Repair pass 2 — TECHNICALLY CLEAN / ADMISSION BLOCKED
+
+Reviewed commit: `b34880e2b1c94eb20528aab9f69b3a669c5f3362`
+
+Both pass-1 defects are fixed and directly tested. Findings 2 through 9 are
+CLEAN under exact revision-matched gates. Finding 1 remains an owner/product
+blocker: no real consumer contract or pin exists. The synthetic module is only
+a syntax fixture. The workflow therefore remains `in_progress`, and no release
+or compatibility claim is admissible.

@@ -14,4 +14,6 @@
 These statuses cover only the local implementation candidate. Admission is
 blocked because no real consumer requirement or pin validates the public API;
 the synthetic compile fixture is not a compatibility oracle. Revised coverage
-and exact-revision evidence are recorded only after the repair source passes.
+is 95.8% at exact source object
+`b34880e2b1c94eb20528aab9f69b3a669c5f3362`; exact-revision commands and
+artifact hashes are recorded in the feature evidence.
