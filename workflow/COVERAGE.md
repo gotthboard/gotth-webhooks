@@ -8,10 +8,10 @@
 | WHK-005/006 | spec/public API | random ID, limits, semantics fingerprint | uniqueness, limit boundaries, fuzz | covered |
 | WHK-007/008 | failure model | retry, status, timeout, bounded response | status/delay/date/error/cancel/overflow tests | covered |
 | WHK-009/012 | receipt model | detached record and minimal receipt | ordering, failure stop, unknown outcomes, fingerprint stability | covered |
-| WHK-011 | concurrency | immutable dispatcher and standard client | race plus 50 concurrent calls | covered; repeated race pending exact commit |
+| WHK-011 | concurrency | immutable dispatcher and standard client | 50 concurrent calls plus 50 uncached race runs | covered |
 | WHK-013 | distribution | `LICENSE` and policy docs | license inventory | covered |
 
-Statement coverage is 96.9%. Residual defensive branches are listed in
+Statement coverage is 97.0%. Residual defensive branches are listed in
 `docs/verification.md`; percentage is iteration evidence, not the behavioral
 oracle. There is no database, deployment, inbound handler, or product event
 subsystem hidden outside this map.

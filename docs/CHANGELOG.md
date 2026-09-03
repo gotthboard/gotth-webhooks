@@ -45,7 +45,7 @@ Risks / non-goals:
 
 ### 2026-09-03 11:20 CDT — Repair cold-review delivery boundaries
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `1defba3673c8e8948501c9f65997b58573d6a844`
 
 Affected files:
 
@@ -70,6 +70,28 @@ Risks / non-goals:
 - Stable error identities and `Result.LastReceipt` preserve reconciliation;
   raw lower-layer diagnostics deliberately remain inside trusted boundaries.
 - This does not add pre-send storage, a database adapter, or exactly-once claims.
+
+### 2026-09-03 11:27 CDT — Record local verification handoff
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- performance, verification, workflow evidence, and internal review records
+
+Explanation:
+
+Record exact repair-source coverage, fuzz, repeated race, performance, and
+internal Judge results while leaving canonical state `in_progress` for the
+orchestrator's independent review.
+
+Verification:
+
+- exact commands, revisions, artifact paths, and hashes in feature evidence
+
+Risks / non-goals:
+
+- Evidence does not create a release or compatibility promise.
 
 ### 2026-09-03 00:42 CDT — Establish GitHub public distribution
 

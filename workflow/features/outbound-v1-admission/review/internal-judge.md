@@ -34,4 +34,38 @@ were inspected; no folklore substituted for the contract.
 
 ## Pass 2
 
-Pending fresh review after repair and verification.
+### Verdict
+
+Accept with constraints (`PASS` for worker handoff; independent admission still
+belongs to the orchestrator).
+
+### Exact flaw
+
+The four pass-1 flaws are repaired without expanding the product boundary.
+No new correctness, trust, userspace, or cost blocker remains in the reviewed
+source and documentation.
+
+### Why it is admissible
+
+- Address-policy failures stop after one attempt and preserve both
+  `ErrPermanent` and `ErrDestination`; transient DNS/network failures retry.
+- Returned errors cannot carry the endpoint query or raw recorder diagnostic.
+  The exact non-sensitive receipt remains available for reconciliation.
+- Crash-between-send-and-record is explicit in PRD, architecture, README, and
+  security policy; exactly-once is rejected.
+- The corrected signature allocation contract matches the streaming hash and
+  canonical-buffer mechanism.
+- Format, vet, full race, 50 uncached race runs, 97.0% coverage, TLS integration,
+  two fuzz targets, external consumer compile, and performance evidence pass.
+
+### Boundary notes
+
+Userspace is new and unreleased. No workflow, confirmation, permission, channel,
+or trust-semantics regression exists. HTTPS:443/no-proxy/no-redirect remains a
+deliberately narrow V1. Consumers still own authorization, minimization,
+same-ID coordination, durable attempt allocation, recorder correctness, and
+receiver deduplication.
+
+Documented behavior was checked in Go docs/source and RFC authorities. The
+context-broker Judge packet was navigation-only, was truncated at its scan
+line bound, and no conclusion relies on it alone.

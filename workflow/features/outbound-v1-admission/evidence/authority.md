@@ -15,3 +15,14 @@ Design authorities read before implementation:
 Raw RFC text is retained as task scratch under
 `/tmp/gotth-webhooks-authority`; the runtime boundary records consequential
 conclusions.
+
+The internal Judge used context-broker 0.1.0 (broker SHA-256
+`8826786c571a5b906b23bda74e91dcbcf055a592b315e3512564b7c6da9924bb`)
+against clean source `338b885077a5870b5645b2e55a257ac487eab638`, base
+`0bba05927d7922e693a6211ffc41ee3ab91ba451`, mode `judge`, budgets 12
+files/100 lines/30,000 bytes. It was a cache miss at
+`/home/linus/.cache/openclaw-code-context/dfbe6fd02ca720e0/a1e27a0c24371b33/ed711b9bd96717fb8573186b3a74baabe34bd6a4ce7e4d2f082dad99116c0639.json`.
+The packet byte budget was not exhausted, but the repository scan hit its
+100-line emission bound and was marked truncated. Every consequential finding
+was independently verified in complete production source, Go contracts, and
+focused tests.
