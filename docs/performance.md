@@ -29,6 +29,11 @@ semantics and provide matched evidence before claiming an overall speedup.
   `53872b9c99d2a7a6d90035ed9564d760c464c298`:
   `/tmp/gotth-webhooks-53872b9.benchmark.txt`, SHA-256
   `207bb0404bf222a23455e21788644d0cd44fc2cb7161d0eaa22e2805ecb61fa8`.
+- Later source `bad5c8171e28666a32f1603205ee0218f8af2e67` changes only full-line
+  production comments. Its non-comment production-source hash equals the
+  benchmark source's final evidence head, so no runtime benchmark rerun or new
+  performance claim is manufactured. Identity evidence is recorded in
+  `verification.md`.
 
 ## Results
 

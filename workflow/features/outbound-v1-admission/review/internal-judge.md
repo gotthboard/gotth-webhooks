@@ -246,3 +246,30 @@ Exact source gates pass at 97.3%, focused race repetitions and all fuzz targets
 pass, and the clean-clone and retained-authority checks pass. This is not a
 CLEAN claim; a fresh independent review is still required, and consumer pin
 admission remains separately open.
+
+## Independent cold pass 10 — NARROW AND RETRY
+
+Reviewed evidence head: `f4ffb41c3a23978fcb990be05e60e919e53c8843`
+
+The independent Judge found one comments-only contract gap. Deliver and attempt
+did not propagate `buildRequest`'s HMAC key-processing terms, Deliver's
+validation aggregate omitted delivery-ID and event bytes, and
+`consumeResponse` called an arbitrary `io.ReadCloser` while claiming constant
+whole-function auxiliary space. Report:
+`/tmp/webhooks-judge-10-independent.md`, SHA-256
+`e3caa86f71774ffbeade2689a7a6b74df42833583cbde750a8f09441b8b3dcfe`.
+
+## Repair pass 18 — FINDING ADDRESSED / INDEPENDENT RECHECK PENDING
+
+Reviewed source: `bad5c8171e28666a32f1603205ee0218f8af2e67`
+
+Deliver's validation aggregate now covers endpoint, content type, delivery ID,
+event type, and body bytes. Deliver and attempt propagate secret-key length and
+delegated HMAC time/space. `consumeResponse` separates its bounded local loop
+from delegated body Read/Close CPU, allocation, I/O, and latency. A mechanical
+proof gives identical SHA-256 for all non-test production Go source after
+removing full-line comments at the preceding and repaired objects, and rejects
+any changed production line that is not a `//` comment. Exact verify/build,
+uncached race coverage, focused race50, three fuzz targets, HMAC, synthetic
+compile, authority hashes, provenance, and detached source clone pass. This is
+not a CLEAN claim; fresh independent review and the consumer pin remain open.

@@ -48,3 +48,9 @@ changing classification. In particular, the owned transport's private
 malformed-response and response-header-limit errors were captured through a
 real `http.Transport` test fixture instead of inferred from deprecated or
 unrelated exported sentinels. No new broker packet or external fetch was needed.
+
+The pass-10 repair read the adjacent `validateMessage`, `buildRequest`,
+`attempt`, `Deliver`, and `consumeResponse` contracts as one call chain. It
+propagates the callee's already-declared HMAC costs and treats caller-supplied
+`io.ReadCloser.Read`/`Close` CPU, allocation, I/O, and latency as delegated.
+No runtime source, new authority fetch, broker packet, or graph was required.

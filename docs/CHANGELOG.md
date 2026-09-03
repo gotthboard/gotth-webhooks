@@ -729,7 +729,7 @@ Risks / non-goals:
 
 ### 2026-09-03 16:20:00 CDT — Complete webhook cost aggregation contracts
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `bad5c8171e28666a32f1603205ee0218f8af2e67`
 
 Affected files:
 
@@ -755,6 +755,41 @@ Risks / non-goals:
 - No API, runtime, retry, transport, receipt, or allocation behavior changes.
 - The real-consumer contract and dependency pin remain separate admission
   blockers. No push, tag, release, deployment, or live request is performed.
+
+### 2026-09-03 16:40:00 CDT — Record comments-only contract evidence
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record exact-source non-comment identity, race, coverage, focused, fuzz, HMAC,
+clean-clone, synthetic-consumer, authority-hash, and provenance evidence for
+the comments-only source `bad5c8171e28666a32f1603205ee0218f8af2e67`.
+Preserve `in_progress` state for fresh independent review and the separate
+real-consumer dependency pin.
+
+Verification:
+
+- exact commands, revision, results, paths, and SHA-256 values in feature
+  evidence
+
+Risks / non-goals:
+
+- This evidence does not claim a clean independent review, admission, release,
+  compatibility, or consumer behavior.
+- No push, PR, tag, deployment, live request, or remote mutation is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
