@@ -229,6 +229,39 @@ Risks / non-goals:
 - This is still an unreleased candidate. The real-consumer contract and pin
   remain absent and independently block admission.
 
+### 2026-09-03 13:41:32 CDT — Record endpoint and cost repair evidence
+
+Commit: `6155c63e370ff70a3fb11bf97b3bb58949ea2b0e`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record exact-source verification for `7a0a940`, correct the historical scopes
+of `6289496` and `7c3fc0b`, retain the rejected-review provenance, and keep the
+consumer blocker explicit. This entry is added by a later changelog-only audit
+commit so it can name the evidence object without a placeholder or false
+self-reference.
+
+Verification:
+
+- exact source revision, commands, artifact paths, and hashes in the evidence
+  commit
+
+Risks / non-goals:
+
+- Recording evidence does not admit, release, push, tag, deploy, or establish
+  compatibility for the candidate.
+
 ### 2026-09-03 00:42 CDT — Establish GitHub public distribution
 
 Commit: `0bba05927d7922e693a6211ffc41ee3ab91ba451`
