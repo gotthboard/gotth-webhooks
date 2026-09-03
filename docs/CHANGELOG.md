@@ -97,8 +97,9 @@ Risks / non-goals:
 
 ### 2026-09-03 12:05 CDT — Repair independent-review boundaries
 
-Commit: `b34880e2b1c94eb20528aab9f69b3a669c5f3362` (source tip; includes repair
-batch `8516e191623380c642a26a65fa47d7c812b69c51`)
+Commit: `f0d4008102380ad135e4a2d32190b8470af0fef8` (source tip; includes repair
+batches `8516e191623380c642a26a65fa47d7c812b69c51` and
+`b34880e2b1c94eb20528aab9f69b3a669c5f3362`)
 
 Affected files:
 
@@ -113,6 +114,8 @@ use a typed transient retry allowlist with deterministic and unknown failures
 permanent, validate raw-query grammar, classify the stable fingerprint as
 sensitive, parse Retry-After without overflow, require concurrent Recorders,
 and correct test/evidence/cost claims.
+Permanent transport and response-protocol failures return the stable
+`ErrPermanent` sentinel without fabricated HTTP status text.
 
 Verification:
 

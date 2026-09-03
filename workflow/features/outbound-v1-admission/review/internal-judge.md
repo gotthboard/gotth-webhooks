@@ -102,3 +102,21 @@ CLEAN under exact revision-matched gates. Finding 1 remains an owner/product
 blocker: no real consumer contract or pin exists. The synthetic module is only
 a syntax fixture. The workflow therefore remains `in_progress`, and no release
 or compatibility claim is admissible.
+
+## Repair pass 3 — NARROW AND RETRY
+
+Reviewed commit: `079dddaa9b1c63aa9601bba2b7482e4012a6ecea`
+
+The permanent-failure sentinel still described only HTTP responses, and
+transport/response-protocol failures could return misleading `status 0` or
+`status 200` text. The smallest repair was to return numeric status only when
+status classification caused the failure, without exposing raw transport data.
+
+## Repair pass 4 — SOURCE CLEAN / ADMISSION BLOCKED
+
+Reviewed commit: `f0d4008102380ad135e4a2d32190b8470af0fef8`
+
+The stable permanent sentinel now covers every permanent delivery failure, and
+fake transport/protocol status text is gone. Findings 2 through 9 are source-
+CLEAN. Exact gates pass at this object. Finding 1 remains the unchanged owner/
+product blocker.
