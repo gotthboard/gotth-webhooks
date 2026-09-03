@@ -758,7 +758,7 @@ Risks / non-goals:
 
 ### 2026-09-03 16:40:00 CDT — Record comments-only contract evidence
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `a23389dea35f10f979432b61e276c6e7e382863d`
 
 Affected files:
 
@@ -790,6 +790,36 @@ Risks / non-goals:
 - This evidence does not claim a clean independent review, admission, release,
   compatibility, or consumer behavior.
 - No push, PR, tag, deployment, live request, or remote mutation is performed.
+
+### 2026-09-03 16:50:00 CDT — Account for zero-progress body reads
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/retry.go`
+
+Explanation:
+
+Add response-body Read callback/local loop iteration counts to
+`consumeResponse`, attempt, and Deliver cost contracts. This accounts for a
+caller body that repeatedly returns `(0, nil)` without advancing the byte
+limit, while retaining explicit delegated Read/Close CPU, allocation, I/O, and
+latency costs. This is comments-only; executable behavior is unchanged.
+
+Verification:
+
+- non-comment production-source identity proof
+- full source and retained-evidence gates recorded separately
+
+Risks / non-goals:
+
+- No new runtime no-progress policy is introduced and no API or behavior
+  changes.
+- The real-consumer contract and dependency pin remain separate admission
+  blockers. No push, tag, release, deployment, or live request is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 

@@ -50,23 +50,27 @@ func newDispatcher(config validatedConfig, deps dependencies) *Dispatcher {
 
 // Deliver performs bounded signed attempts and records each actual attempt
 // before retry or return. All-input CPU time is
-// O(Vt(e,c,d,v,b)+sum(i=1..A)(b+r_i+m_i+w_i+Htime(k)+Pt(i,q_i)+Tt_i+Bt_i+Rt_i+Wt_i)), Omega(1), with no
+// O(Vt(e,c,d,v,b)+sum(i=1..A)(b+r_i+c_i+m_i+w_i+Htime(k)+Pt(i,q_i)+Tt_i+Bt_i+Rt_i+Wt_i)), Omega(1), with no
 // input-independent tight bound; auxiliary space is
 // O(Vs(e,c,d,v,b)+b+max(i=1..A)(m_i+Hspace(k)+Ts_i+Bs_i+Rs_i+Ps(q_i)+Ws_i+d_i)), Omega(1), also with no
 // input-independent tight bound. A is actual attempts (at most configured
 // MaxAttempts); e, c, d, v, and b are endpoint, content-type, delivery-ID,
 // event-type, and body bytes; k is secret-key bytes; m_i is bounded canonical
 // and request metadata (including key-ID and numeric fields); r_i is bounded
-// response bytes; q_i is Retry-After bytes; w_i is total error-tree nodes
-// visited by all errors.Is/As calls; and d_i is maximum joined-error depth.
+// response bytes; c_i is response-body Read callback/local loop iterations;
+// q_i is Retry-After bytes; w_i is total error-tree nodes visited by all
+// errors.Is/As calls; and d_i is maximum joined-error depth.
 // Vt/Vs are complete message validation/copy/fingerprint costs, Htime/Hspace
 // are delegated HMAC key-initialization costs, Pt/Ps are retry-delay/header
-// parsing, Tt/Ts are RoundTripper CPU/allocation, Bt/Bs are response-body
-// Read/Close CPU/allocation, Rt/Rs are Recorder CPU/allocation, and Wt/Ws are
-// retry-wait CPU/allocation. Sum and maximum attempt terms are zero when A is
-// zero. Network, response-body, recorder, timer, DNS, TLS, and wait I/O/latency
-// are delegated; contexts bound cooperative implementations, not a Recorder or
-// body implementation that violates its contract.
+// parsing, Tt/Ts are RoundTripper CPU/allocation, Bt/Bs are delegated
+// response-body CPU/allocation across c_i Read callbacks and one Close when a
+// body is present, Rt/Rs
+// are Recorder CPU/allocation, and Wt/Ws are retry-wait CPU/allocation. Sum and
+// maximum attempt terms are zero when A is zero. Network, response-body,
+// recorder, timer, DNS, TLS, and wait I/O/latency are delegated; contexts bound
+// cooperative implementations, not a Recorder or body implementation that
+// violates its contract. No finite byte-only CPU bound exists for a body that
+// repeatedly returns (0, nil).
 func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 	if ctx == nil {
 		return Result{}, fmt.Errorf("%w: nil context", ErrInvalid)
@@ -131,16 +135,18 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 }
 
 // attempt executes one request and returns only bounded classification data.
-// All-input CPU time is O(b+r+m+w+Htime(k)+Tt(b,r,m)+Bt(r)), Omega(1), with
+// All-input CPU time is O(b+r+c+m+w+Htime(k)+Tt(b,r,m)+Bt(c,r)), Omega(1), with
 // no input-independent tight bound; auxiliary space is
-// O(m+Hspace(k)+Ts(b,r,m)+Bs(r)+d), Omega(1), with no input-independent tight
+// O(m+Hspace(k)+Ts(b,r,m)+Bs(c,r)+d), Omega(1), with no input-independent tight
 // bound. b is body bytes, r is bounded response bytes, m is bounded canonical
 // and request metadata (including key-ID and numeric fields), k is secret-key
-// bytes, w is total error-tree nodes visited by errors.Is/As calls, and d is
-// maximum joined-error depth. Htime/Hspace are delegated HMAC
+// bytes, c is response-body Read callback/local loop iterations, w is total
+// error-tree nodes visited by errors.Is/As calls, and d is maximum joined-error
+// depth. Htime/Hspace are delegated HMAC
 // key-initialization costs; Tt/Ts are delegated RoundTripper CPU/allocation and
-// buffering costs; Bt/Bs are delegated response-body Read/Close
-// CPU/allocation costs.
+// buffering costs; Bt/Bs are delegated response-body CPU/allocation across c
+// Read callbacks and one Close when a body is present. No finite byte-only CPU
+// bound exists for a body that repeatedly returns (0, nil).
 // The request body is already owned and is hashed/read without another body
 // copy. Transport and response-body I/O latency are delegated and cooperatively
 // bounded by attemptTimeout.

@@ -21,13 +21,17 @@ func classifyStatus(status int) Outcome {
 }
 
 // consumeResponse closes a response after reading at most the configured limit
-// plus one overflow byte. Local CPU time is O(min(n,L+1)) and local auxiliary
+// plus one overflow byte. Local CPU time is O(c+min(n,L+1)) and local auxiliary
 // space is O(1). Whole-function CPU time is
-// O(min(n,L+1)+Bt(min(n,L+1))), Omega(1), with no input-independent tight bound;
-// whole-function auxiliary space is O(1+Bs(min(n,L+1))), Omega(1), with no
-// input-independent tight bound. n is response bytes, L is MaxResponseBytes,
-// and Bt/Bs are delegated response-body Read/Close CPU/allocation costs.
-// Response-body I/O and latency are also delegated.
+// O(c+min(n,L+1)+Bt(c,min(n,L+1))), Omega(1), with no input-independent tight
+// bound; whole-function auxiliary space is O(1+Bs(c,min(n,L+1))), Omega(1),
+// with no input-independent tight bound. n is response bytes, L is
+// MaxResponseBytes, c is the number of body Read callbacks/local copy-loop
+// iterations before return, and Bt/Bs are delegated response-body
+// CPU/allocation across those Read callbacks and one Close when body is
+// non-nil. Response-body I/O and latency are also delegated. A body can return
+// (0, nil) repeatedly, so there is no finite local CPU bound in n alone without
+// body cooperation.
 func consumeResponse(body io.ReadCloser) (int64, error) {
 	if body == nil {
 		return 0, nil
