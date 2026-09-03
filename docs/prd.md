@@ -35,10 +35,11 @@ consumer-neutral outbound mechanics over opaque caller-provided bytes.
   response, exhausted attempts, or receipt-recording failure.
 - `WHK-008`: Bound connection, TLS, whole-attempt, response-header, and response
   body work. Drain no unbounded response and return cancellation promptly.
-- `WHK-009`: Record every attempted request result through a required
-  consumer-owned durable interface before returning or starting another
-  attempt. Records contain metadata, never payloads, secrets, signatures, or
-  response bodies.
+- `WHK-009`: While the process survives, record every attempted request result
+  through a required consumer-owned durable interface before returning or
+  starting another attempt. Records contain metadata, never payloads, secrets,
+  signatures, endpoints, response bodies, or raw errors. A crash between HTTP
+  completion and recording remains an explicit unknown outcome.
 - `WHK-010`: Support secret rotation explicitly through a signed key ID. A
   dispatcher signs with exactly one configured current key; receivers own the
   bounded active/retired verification-key set and retirement window.

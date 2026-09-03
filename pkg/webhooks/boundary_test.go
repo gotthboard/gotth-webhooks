@@ -205,7 +205,7 @@ func TestSafeDialerAdditionalFailurePaths(t *testing.T) {
 	t.Parallel()
 
 	lookupFailure := &resolverFunc{fn: func(context.Context, string, string) ([]netip.Addr, error) { return nil, errors.New("DNS down") }}
-	if _, err := (safeDialer{resolver: lookupFailure, dialer: &recordingDialer{}}).DialContext(context.Background(), "tcp", "example.com:443"); !errors.Is(err, ErrDestination) {
+	if _, err := (safeDialer{resolver: lookupFailure, dialer: &recordingDialer{}}).DialContext(context.Background(), "tcp", "example.com:443"); err == nil || errors.Is(err, ErrDestination) {
 		t.Fatalf("lookup error=%v", err)
 	}
 	if _, err := (safeDialer{resolver: &sequenceResolver{answers: [][]netip.Addr{{}}}, dialer: &recordingDialer{}}).DialContext(context.Background(), "tcp", "example.com:443"); !errors.Is(err, ErrDestination) {

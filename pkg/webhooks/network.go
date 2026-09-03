@@ -46,7 +46,7 @@ func (d safeDialer) DialContext(ctx context.Context, network, address string) (n
 	} else {
 		addresses, err = d.resolver.LookupNetIP(ctx, "ip", host)
 		if err != nil {
-			return nil, fmt.Errorf("%w: DNS lookup failed: %v", ErrDestination, err)
+			return nil, fmt.Errorf("DNS lookup failed: %w", err)
 		}
 	}
 	if len(addresses) == 0 || len(addresses) > maxResolvedAddresses {

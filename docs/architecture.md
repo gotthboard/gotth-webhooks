@@ -75,13 +75,15 @@ permanent, or canceled. A 2xx response is delivered. Status 408, 425, 429, and
 5xx are retryable. Other HTTP responses, including every 3xx, are permanent.
 Transport errors are retryable unless the caller or attempt context ended.
 
-The library records the result of an actual attempt before another attempt or
-return. Recording uses a separate bounded context so caller cancellation does
-not silently erase the receipt. If recording fails, delivery stops with an
-explicit receipt error; the returned result still exposes the known network
-outcome. No library can atomically commit a receiver's side effect and the
-sender's receipt across HTTP. Consumers and receivers must use the stable
-delivery ID for durable deduplication and reconcile unknown outcomes.
+While the process survives, the library records an attempt result before
+another attempt or return. Recording uses a separate bounded context so caller
+cancellation does not silently erase the receipt. If recording fails, delivery
+stops with an explicit receipt error; `Result.LastReceipt` exposes the exact
+non-sensitive record for reconciliation. A process crash after sending but
+before recording can leave an unrecorded unknown attempt. No library can
+atomically commit a receiver effect and sender receipt across HTTP. Consumers
+and receivers must use stable identity for durable deduplication and reconcile
+unknown/in-flight work before another send.
 
 ## Concurrency
 

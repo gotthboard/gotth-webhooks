@@ -31,6 +31,13 @@ request does not silently erase evidence. Go contexts are cooperative: a broken
 recorder that ignores its context can still block. Recorder implementations are
 trusted consumer infrastructure and must honor cancellation/deadlines.
 
+Returned transport and recorder failures are reduced to stable sentinels plus
+the non-sensitive `Result`/`LastReceipt`; raw errors are not propagated because
+Go's HTTP errors can embed the complete endpoint query. Operators should record
+diagnostics inside trusted transport/store boundaries without copying secrets
+into application logs. A crash between send and record remains an unknown
+outcome and requires receiver deduplication plus consumer reconciliation.
+
 ## Reporting a vulnerability
 
 Do not publish exploit details in a GitHub issue, Forgejo issue, pull request,

@@ -31,6 +31,8 @@ V1 provides:
 It does not provide exactly-once delivery. A receiver can commit work before a
 sender observes a timeout. The receiver must durably deduplicate the stable
 delivery ID before effects, and the sender must reconcile unknown outcomes.
+A process crash after a request but before receipt recording can leave an
+unrecorded unknown attempt; recovery must not blindly resend it.
 
 ## Installation and compatibility
 

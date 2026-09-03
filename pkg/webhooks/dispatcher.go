@@ -89,6 +89,9 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 			if errors.Is(cause, ErrResponseTooLarge) {
 				return result, fmt.Errorf("%w: %w", ErrPermanent, ErrResponseTooLarge)
 			}
+			if errors.Is(cause, ErrDestination) {
+				return result, fmt.Errorf("%w: %w", ErrPermanent, ErrDestination)
+			}
 			return result, fmt.Errorf("%w: status %d", ErrPermanent, receipt.StatusCode)
 		case OutcomeCanceled:
 			if err := ctx.Err(); err != nil {
@@ -97,9 +100,6 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 			return result, context.Canceled
 		case OutcomeRetryable:
 			if offset+1 == d.config.retry.MaxAttempts {
-				if cause != nil {
-					return result, fmt.Errorf("%w: %w", ErrExhausted, cause)
-				}
 				return result, ErrExhausted
 			}
 		}
@@ -134,6 +134,9 @@ func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attem
 		if parent.Err() != nil {
 			receipt.Outcome = OutcomeCanceled
 			receipt.ErrorCode = ErrorCanceled
+		} else if errors.Is(err, ErrDestination) {
+			receipt.Outcome = OutcomePermanent
+			receipt.ErrorCode = ErrorDestination
 		} else {
 			receipt.Outcome = OutcomeRetryable
 			if errors.Is(attemptCtx.Err(), context.DeadlineExceeded) {
@@ -182,7 +185,7 @@ func (d *Dispatcher) record(parent context.Context, receipt Receipt) error {
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(parent), d.config.receiptTimeout)
 	defer cancel()
 	if err := d.config.recorder.Record(recordCtx, receipt); err != nil {
-		return fmt.Errorf("%w: %w", ErrReceipt, err)
+		return ErrReceipt
 	}
 	return nil
 }

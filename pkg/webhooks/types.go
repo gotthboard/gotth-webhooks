@@ -88,6 +88,7 @@ const (
 	ErrorTransport     ErrorCode = "transport"
 	ErrorTimeout       ErrorCode = "timeout"
 	ErrorCanceled      ErrorCode = "canceled"
+	ErrorDestination   ErrorCode = "destination"
 	ErrorHTTPStatus    ErrorCode = "http_status"
 	ErrorResponseLimit ErrorCode = "response_limit"
 )

@@ -104,6 +104,12 @@ When recording returns an unknown failure, `Result.LastReceipt` contains the
 exact record so the consumer can query or replay the idempotent store operation
 without issuing another HTTP request.
 
+Raw transport and recorder errors are not propagated beyond the dispatcher;
+standard HTTP errors can contain the full target URL, including a sensitive
+query. Callers receive stable sentinels and inspect the non-sensitive result and
+receipt classes. Destination policy failures are permanent; transient resolver
+and network failures remain retryable.
+
 ## Production-unit order
 
 1. values, endpoint canonicalization, public-address policy, and random ID;

@@ -3,6 +3,7 @@ package webhooks
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -144,8 +145,28 @@ func TestDeliverResponseReadFailureIsRetryable(t *testing.T) {
 	recorder := &memoryRecorder{}
 	d := testDispatcher(t, recorder, roundTrip, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
 	result, err := d.Deliver(context.Background(), validMessage())
-	if !errors.Is(err, ErrExhausted) || !errors.Is(err, want) || result.Outcome != OutcomeRetryable {
+	if !errors.Is(err, ErrExhausted) || strings.Contains(err.Error(), want.Error()) || result.Outcome != OutcomeRetryable {
 		t.Fatalf("result=%+v error=%v", result, err)
+	}
+}
+
+func TestDeliverDestinationRejectionIsPermanentAndSanitized(t *testing.T) {
+	t.Parallel()
+
+	roundTrip := roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return nil, fmt.Errorf("wrapped: %w", ErrDestination)
+	})
+	recorder := &memoryRecorder{}
+	d := testDispatcher(t, recorder, roundTrip, RetryPolicy{MaxAttempts: 3, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+	msg := validMessage()
+	msg.Endpoint = "https://example.com/hook?private-token=do-not-leak"
+	result, err := d.Deliver(context.Background(), msg)
+	if !errors.Is(err, ErrPermanent) || !errors.Is(err, ErrDestination) || result.Attempts != 1 || strings.Contains(err.Error(), "do-not-leak") {
+		t.Fatalf("result=%+v error=%v", result, err)
+	}
+	receipt := recorder.snapshot()[0]
+	if receipt.ErrorCode != ErrorDestination {
+		t.Fatalf("receipt=%+v", receipt)
 	}
 }
 
@@ -245,11 +266,11 @@ func TestDeliverResponseLimitIsPermanent(t *testing.T) {
 func TestDeliverReceiptFailureStopsRetries(t *testing.T) {
 	t.Parallel()
 
-	recorder := &memoryRecorder{err: errors.New("store unavailable")}
+	recorder := &memoryRecorder{err: errors.New("store unavailable secret-marker")}
 	roundTrip := &scriptedTransport{steps: []transportStep{{status: http.StatusInternalServerError}, {status: http.StatusNoContent}}}
 	d := testDispatcher(t, recorder, roundTrip, RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
 	result, err := d.Deliver(context.Background(), validMessage())
-	if !errors.Is(err, ErrReceipt) || result.Attempts != 1 || result.LastReceipt.DeliveryID != "delivery-1" || result.LastReceipt.Attempt != 1 || roundTrip.callCount() != 1 {
+	if !errors.Is(err, ErrReceipt) || strings.Contains(err.Error(), "secret-marker") || result.Attempts != 1 || result.LastReceipt.DeliveryID != "delivery-1" || result.LastReceipt.Attempt != 1 || roundTrip.callCount() != 1 {
 		t.Fatalf("result=%+v error=%v calls=%d", result, err, roundTrip.callCount())
 	}
 }
