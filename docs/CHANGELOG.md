@@ -6,16 +6,53 @@ Released sections use Semantic Versioning; unreleased work remains under
 
 ## Unreleased
 
-### 2026-09-03 11:08 CDT — Implement bounded outbound webhook mechanics
+### 2026-09-03 11:15:14 CDT — Implement bounded outbound webhook mechanics
 
 Commit: `338b885077a5870b5645b2e55a257ac487eab638`
 
 Affected files:
 
-- `LICENSE`, `.go-version`, `go.mod`, `Makefile`, `.gitignore`
-- `pkg/webhooks/**`
-- `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/**`
-- `workflow.toml`, `workflow.events.jsonl`, `workflow/**`
+- `.gitignore`
+- `.go-version`
+- `CONTRIBUTING.md`
+- `LICENSE`
+- `Makefile`
+- `README.md`
+- `SECURITY.md`
+- `docs/CHANGELOG.md`
+- `docs/RELEASING.md`
+- `docs/architecture.md`
+- `docs/distribution.md`
+- `docs/feature-plan.md`
+- `docs/implementation-spec.md`
+- `docs/performance.md`
+- `docs/prd.md`
+- `docs/runtime-boundary.md`
+- `docs/verification.md`
+- `go.mod`
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/doc.go`
+- `pkg/webhooks/errors.go`
+- `pkg/webhooks/fuzz_test.go`
+- `pkg/webhooks/network.go`
+- `pkg/webhooks/network_test.go`
+- `pkg/webhooks/performance_test.go`
+- `pkg/webhooks/retry.go`
+- `pkg/webhooks/signing.go`
+- `pkg/webhooks/signing_test.go`
+- `pkg/webhooks/transport_integration_test.go`
+- `pkg/webhooks/types.go`
+- `pkg/webhooks/values.go`
+- `pkg/webhooks/values_test.go`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/README.md`
+- `workflow/features/outbound-v1-admission/README.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
 
 Explanation:
 
@@ -43,15 +80,26 @@ Risks / non-goals:
 - Candidate remains `in_progress` pending exact-commit verification and
   independent orchestrator review. No push, PR, tag, release, or deployment.
 
-### 2026-09-03 11:20 CDT — Repair cold-review delivery boundaries
+### 2026-09-03 11:23:30 CDT — Repair cold-review delivery boundaries
 
 Commit: `1defba3673c8e8948501c9f65997b58573d6a844`
 
 Affected files:
 
-- `pkg/webhooks/{dispatcher,network,signing,types}.go`
-- focused dispatcher and network tests
-- boundary, security, lifecycle, workflow, and evidence documents
+- `README.md`
+- `SECURITY.md`
+- `docs/CHANGELOG.md`
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `docs/prd.md`
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/network.go`
+- `pkg/webhooks/signing.go`
+- `pkg/webhooks/types.go`
+- `workflow.toml`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
 
 Explanation:
 
@@ -71,13 +119,21 @@ Risks / non-goals:
   raw lower-layer diagnostics deliberately remain inside trusted boundaries.
 - This does not add pre-send storage, a database adapter, or exactly-once claims.
 
-### 2026-09-03 11:27 CDT — Record local verification handoff
+### 2026-09-03 11:29:10 CDT — Record local verification handoff
 
 Commit: `a5a3b1060989f220bf97c4733a3248ac4c7e9130`
 
 Affected files:
 
-- performance, verification, workflow evidence, and internal review records
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
 
 Explanation:
 
@@ -95,16 +151,39 @@ Risks / non-goals:
   review later rejected this candidate; the rejection is not superseded merely
   by local source repairs.
 
-### 2026-09-03 12:05 CDT — Repair independent-review boundaries
+### 2026-09-03 12:01:50 CDT — Repair independent-review boundaries
 
-Commit: `f0d4008102380ad135e4a2d32190b8470af0fef8` (source tip; includes repair
-batches `8516e191623380c642a26a65fa47d7c812b69c51` and
-`b34880e2b1c94eb20528aab9f69b3a669c5f3362`)
+Commit: `8516e191623380c642a26a65fa47d7c812b69c51`
 
 Affected files:
 
-- address, query, transport, retry, receipt, and complexity source/tests
-- public boundary, security, workflow, and evidence documents
+- `README.md`
+- `SECURITY.md`
+- `docs/CHANGELOG.md`
+- `docs/address-policy.md`
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `docs/prd.md`
+- `docs/runtime-boundary.md`
+- `docs/verification.md`
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/network.go`
+- `pkg/webhooks/performance_test.go`
+- `pkg/webhooks/retry.go`
+- `pkg/webhooks/signing_test.go`
+- `pkg/webhooks/transport_integration_test.go`
+- `pkg/webhooks/types.go`
+- `pkg/webhooks/values.go`
+- `pkg/webhooks/values_test.go`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/README.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
 
 Explanation:
 
@@ -114,8 +193,6 @@ use a typed transient retry allowlist with deterministic and unknown failures
 permanent, validate raw-query grammar, classify the stable fingerprint as
 sensitive, parse Retry-After without overflow, require concurrent Recorders,
 and correct test/evidence/cost claims.
-Permanent transport and response-protocol failures return the stable
-`ErrPermanent` sentinel without fabricated HTTP status text.
 
 Verification:
 
@@ -126,6 +203,82 @@ Risks / non-goals:
 
 - The public API still lacks a real consumer contract. The feature remains
   `in_progress`, unreleased, unadmitted, and blocked on owner/product input.
+
+### 2026-09-03 12:10:21 CDT — Tighten ASCII and concurrency contracts
+
+Commit: `b34880e2b1c94eb20528aab9f69b3a669c5f3362`
+
+Affected files:
+
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/retry.go`
+
+Explanation:
+
+Restrict Retry-After optional-whitespace trimming to ASCII SP/HTAB, add the
+non-ASCII rejection case, and qualify Dispatcher concurrency on the Recorder
+fulfilling its existing concurrency contract.
+
+Verification:
+
+- focused and full race tests
+
+Risks / non-goals:
+
+- This does not widen accepted header syntax or provide a Recorder adapter.
+
+### 2026-09-03 12:16:46 CDT — Record independent-boundary repair evidence
+
+Commit: `079dddaa9b1c63aa9601bba2b7482e4012a6ecea`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record the exact repair verification, performance, workflow, and internal
+review evidence without changing the public implementation.
+
+Verification:
+
+- exact commands, revisions, artifact paths, and hashes in feature evidence
+
+Risks / non-goals:
+
+- Evidence does not admit or release the API.
+
+### 2026-09-03 12:19:39 CDT — Avoid false webhook status errors
+
+Commit: `f0d4008102380ad135e4a2d32190b8470af0fef8`
+
+Affected files:
+
+- `docs/prd.md`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/errors.go`
+
+Explanation:
+
+Return the stable `ErrPermanent` sentinel for permanent transport and
+response-protocol failures without fabricating HTTP status text.
+
+Verification:
+
+- focused and full exact-source tests
+
+Risks / non-goals:
+
+- Stable public classification deliberately omits raw lower-layer diagnostics.
 
 ### 2026-09-03 12:56:51 CDT — Close post-repair dial classification gaps
 
@@ -262,17 +415,71 @@ Risks / non-goals:
 - Recording evidence does not admit, release, push, tag, deploy, or establish
   compatibility for the candidate.
 
-### 2026-09-03 00:42 CDT — Establish GitHub public distribution
+### 2026-09-03 13:42:04 CDT — Add exact evidence-commit attribution
 
-Commit: `0bba05927d7922e693a6211ffc41ee3ab91ba451`
+Commit: `ff4fee3f5aa94cb5b44694050188793e5b181a8d`
 
 Affected files:
 
-- `README.md`
+- `docs/CHANGELOG.md`
+
+Explanation:
+
+Add the exact `6155c63e370ff70a3fb11bf97b3bb58949ea2b0e` evidence-commit
+record after that object existed, avoiding a placeholder or self-reference.
+
+Verification:
+
+- exact `git show --name-only --format=fuller` attribution audit
+
+Risks / non-goals:
+
+- Changelog attribution does not alter implementation or admission state.
+
+### 2026-09-03 14:03:37 CDT — Reject controls in webhook content types
+
+Commit: `be6f7150f3419ff3bcb971476119e7cc3f2cb10b`
+
+Affected files:
+
+- `docs/implementation-spec.md`
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/fuzz_test.go`
+- `pkg/webhooks/signing_test.go`
+- `pkg/webhooks/values.go`
+- `pkg/webhooks/values_test.go`
+
+Explanation:
+
+Reject every ASCII C0 control byte and DEL before MIME parsing. Exercise each
+byte in leading, trailing, and quoted-parameter positions through direct
+canonicalization, signing validation, and the public Config/Message/Deliver
+path, proving validation precedes transport and receipt recording. Preserve
+accepted spaces and MIME parser support for quoted UTF-8 parameter values.
+
+Verification:
+
+- focused and full race tests, coverage, content-type/signature fuzzing, and
+  exact-source clean-clone verification
+
+Risks / non-goals:
+
+- Non-ASCII policy outside the rejected ASCII control set is unchanged.
+- The real-consumer blocker remains open; this does not admit or release the
+  API.
+
+### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
+
+Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`
+
+Affected files:
+
 - `CONTRIBUTING.md`
+- `README.md`
 - `SECURITY.md`
-- `docs/distribution.md`
+- `docs/CHANGELOG.md`
 - `docs/RELEASING.md`
+- `docs/distribution.md`
 
 Explanation:
 
@@ -290,3 +497,48 @@ Risks / non-goals:
 - No license is selected.
 - No existing tag is changed and no new release is created.
 - Mirror direction, repository ownership, and account type are unchanged.
+
+### 2026-09-03 01:05:08 CDT — Tighten distribution and release claims
+
+Commit: `3cb9334b09b020a98a2cae103b65b2a3fd79f95e`
+
+Affected files:
+
+- `README.md`
+- `docs/RELEASING.md`
+- `docs/distribution.md`
+
+Explanation:
+
+Clarify the placeholder's maturity and separate GitHub distribution from the
+canonical Forgejo development repository without claiming a release.
+
+Verification:
+
+- documentation contract audit
+
+Risks / non-goals:
+
+- No release, mirror-direction, ownership, or account-type change is made.
+
+### 2026-09-03 01:07:20 CDT — Normalize release-policy formatting
+
+Commit: `0bba05927d7922e693a6211ffc41ee3ab91ba451`
+
+Affected files:
+
+- `docs/RELEASING.md`
+
+Explanation:
+
+Normalize policy formatting only. The substantive distribution contract is
+owned by `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4` with the narrower claim repair
+in `3cb9334b09b020a98a2cae103b65b2a3fd79f95e`.
+
+Verification:
+
+- exact `git show --name-only --format=fuller` attribution audit
+
+Risks / non-goals:
+
+- Formatting does not establish or modify distribution policy.
