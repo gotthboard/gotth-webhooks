@@ -36,7 +36,7 @@ surface. A synthetic compile fixture is not that requirement.
   bodies.
 - `WHK-007`: Retry only an explicit typed allowlist of transient transport failures and
   HTTP statuses, cap `Retry-After`, and stop on cancellation, permanent
-  response, exhausted attempts, or receipt-recording failure.
+  failure, exhausted attempts, or receipt-recording failure.
 - `WHK-008`: Bound connection, TLS, whole-attempt, response-header, and response
   body work. Drain no unbounded response and return cancellation promptly.
 - `WHK-009`: While the process survives, record every attempted request result

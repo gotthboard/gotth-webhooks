@@ -93,6 +93,9 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 			if errors.Is(cause, ErrDestination) {
 				return result, fmt.Errorf("%w: %w", ErrPermanent, ErrDestination)
 			}
+			if cause != nil {
+				return result, ErrPermanent
+			}
 			return result, fmt.Errorf("%w: status %d", ErrPermanent, receipt.StatusCode)
 		case OutcomeCanceled:
 			if err := ctx.Err(); err != nil {

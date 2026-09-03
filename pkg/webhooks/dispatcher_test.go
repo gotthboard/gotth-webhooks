@@ -146,7 +146,7 @@ func TestDeliverDeterministicTransportFailuresArePermanent(t *testing.T) {
 			recorder := &memoryRecorder{}
 			d := testDispatcher(t, recorder, transport, RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
 			result, err := d.Deliver(context.Background(), validMessage())
-			if !errors.Is(err, ErrPermanent) || result.Attempts != 1 || result.Outcome != OutcomePermanent || transport.callCount() != 1 {
+			if !errors.Is(err, ErrPermanent) || strings.Contains(err.Error(), "status 0") || result.Attempts != 1 || result.Outcome != OutcomePermanent || transport.callCount() != 1 {
 				t.Fatalf("result=%+v error=%v calls=%d", result, err, transport.callCount())
 			}
 			if receipts := recorder.snapshot(); len(receipts) != 1 || receipts[0].ErrorCode != ErrorTransport {
@@ -192,7 +192,7 @@ func TestDeliverResponseProtocolFailureIsPermanent(t *testing.T) {
 	recorder := &memoryRecorder{}
 	d := testDispatcher(t, recorder, roundTrip, RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
 	result, err := d.Deliver(context.Background(), validMessage())
-	if !errors.Is(err, ErrPermanent) || result.Attempts != 1 || result.Outcome != OutcomePermanent {
+	if !errors.Is(err, ErrPermanent) || strings.Contains(err.Error(), "status 200") || result.Attempts != 1 || result.Outcome != OutcomePermanent {
 		t.Fatalf("result=%+v error=%v", result, err)
 	}
 }

@@ -5,7 +5,7 @@ import "errors"
 var (
 	// ErrInvalid identifies rejected configuration or message input.
 	ErrInvalid = errors.New("webhooks: invalid input")
-	// ErrPermanent identifies an HTTP response that must not be retried.
+	// ErrPermanent identifies a delivery failure that must not be retried.
 	ErrPermanent = errors.New("webhooks: permanent delivery failure")
 	// ErrExhausted identifies a retryable outcome after all attempts were used.
 	ErrExhausted = errors.New("webhooks: attempts exhausted")
