@@ -659,7 +659,7 @@ Risks / non-goals:
 
 ### 2026-09-03 15:45:00 CDT — Require causal deadline classification
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `53872b9c99d2a7a6d90035ed9564d760c464c298`
 
 Affected files:
 
@@ -691,6 +691,41 @@ Risks / non-goals:
   failures retain their existing allowlist behavior.
 - The real-consumer contract and dependency pin remain separate admission
   blockers. No push, tag, release, deployment, or live request is performed.
+
+### 2026-09-03 16:05:00 CDT — Record causal-deadline repair evidence
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record exact-source race, coverage, real-transport focused tests, fuzz,
+independent HMAC, benchmark, clean-clone, synthetic-consumer, authority-hash,
+and changelog-provenance evidence for
+`53872b9c99d2a7a6d90035ed9564d760c464c298`. Preserve `in_progress` state for
+fresh independent review and the separate real-consumer dependency pin.
+
+Verification:
+
+- exact commands, revision, results, paths, and SHA-256 values in feature
+  evidence
+
+Risks / non-goals:
+
+- This evidence does not claim a clean independent review, admission, release,
+  compatibility, or consumer behavior.
+- No push, PR, tag, deployment, live request, or remote mutation is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 

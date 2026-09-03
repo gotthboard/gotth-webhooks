@@ -41,3 +41,10 @@ files/100 lines/30,000 bytes. It was a cache miss at
 The packet emitted 10 files/100 lines/12,809 bytes and marked its broader scan
 truncated. It was navigation evidence only; the cited source, tests, Git
 objects, Go contracts, and retained artifacts were read or verified directly.
+
+The pass-6 repair directly inspected Go 1.26.6 `errors/wrap.go` recursion and
+`net/http/request.go`, `response.go`, `transfer.go`, and `transport.go` before
+changing classification. In particular, the owned transport's private
+malformed-response and response-header-limit errors were captured through a
+real `http.Transport` test fixture instead of inferred from deprecated or
+unrelated exported sentinels. No new broker packet or external fetch was needed.

@@ -216,3 +216,33 @@ Exact source gates pass at 97.3%. This is not a CLEAN claim: the orchestrator
 must run a fresh independent pass and, if clean, an independent double-check.
 Admission also still requires a real consumer adapter, behavioral proof, and
 dependency pin.
+
+## Independent cold pass 6 — NARROW AND RETRY
+
+Reviewed evidence head: `3eafee7e28eb806fab9e990c39224ef27a7c1e0c`
+
+The independent Judge proved that attempt-context readiness was not causal
+evidence: actual private `net/http` malformed-response and response-header-limit
+errors could become retryable if the attempt deadline happened to expire at the
+same edge. The source tests relied on obsolete or unrelated exported sentinels.
+The Judge also found stale constant-space error-tree accounting and missing
+response-body, retry parsing, resolver/dialer, transport, and Recorder terms in
+caller contracts. Report: `/tmp/webhooks-judge-6-independent.md`, SHA-256
+`3cdfea4a90a5239a73ad8e71794d4fe0b64e626c86f4909f35da764c62d3b265`.
+
+## Repair pass 17 — FINDINGS ADDRESSED / INDEPENDENT RECHECK PENDING
+
+Reviewed source: `53872b9c99d2a7a6d90035ed9564d760c464c298`
+
+Timeout classification now requires deadline or cancellation evidence in the
+returned error chain; caller cancellation remains first, typed transient
+classes remain retryable, and unknown errors remain permanent. Tests obtain the
+real malformed and header-limit errors from `http.Transport` and prove their
+permanence against an already-expired attempt context while separately proving
+a causal deadline retry. Complexity contracts now aggregate visited error-tree
+nodes, join depth, retry parsing/wait, body, transport, resolver/dialer, and
+Recorder costs and state that the DNS answer-count guard is post-resolution.
+Exact source gates pass at 97.3%, focused race repetitions and all fuzz targets
+pass, and the clean-clone and retained-authority checks pass. This is not a
+CLEAN claim; a fresh independent review is still required, and consumer pin
+admission remains separately open.

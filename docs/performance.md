@@ -26,29 +26,30 @@ semantics and provide matched evidence before claiming an overall speedup.
 - Ten sample means per workload; nearest-rank percentiles. With ten samples,
   p95 and p99 are both the maximum and are coarse.
 - Raw exact-source output at
-  `f1fd980e8e6bd184815b871fb5b7513a999725d1`:
-  `/tmp/gotth-webhooks-f1fd980.benchmark.txt`, SHA-256
-  `d45c180a8261f2e7024b7eb7d351e71fe046e76cd5a5311e30c7293fa508d44f`.
+  `53872b9c99d2a7a6d90035ed9564d760c464c298`:
+  `/tmp/gotth-webhooks-53872b9.benchmark.txt`, SHA-256
+  `207bb0404bf222a23455e21788644d0cd44fc2cb7161d0eaa22e2805ecb61fa8`.
 
 ## Results
 
 | Workload | p50 | p95 | p99 | p50 throughput | Bytes/op range | Allocs/op range |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| empty payload | 11.652 us | 13.075 us | 13.075 us | 85,822.18 ops/s | 4,297..4,301 | 73 |
-| small 1 KiB payload | 17.190 us | 22.384 us | 22.384 us | 58,173.36 ops/s | 5,324..5,329 | 74 |
-| typical 64 KiB payload | 0.449464 ms | 0.646433 ms | 0.646433 ms | 2,224.87 ops/s | 69,948..70,192 | 74 |
-| boundary 1 MiB payload | 5.455674 ms | 8.243447 ms | 8.243447 ms | 183.30 ops/s | 1,054,828..1,056,458 | 76..78 |
-| pathological 64 KiB+1 response | 13.277 us | 15.005 us | 15.005 us | 75,318.22 ops/s | 4,480..4,486 | 78 |
+| empty payload | 35.369 us | 53.979 us | 53.979 us | 28,273.35 ops/s | 4,300..4,313 | 73 |
+| small 1 KiB payload | 27.768 us | 38.873 us | 38.873 us | 36,012.68 ops/s | 5,325..5,341 | 74 |
+| typical 64 KiB payload | 0.881020 ms | 1.339400 ms | 1.339400 ms | 1,135.05 ops/s | 70,107..70,390 | 74 |
+| boundary 1 MiB payload | 11.349994 ms | 13.915099 ms | 13.915099 ms | 88.11 ops/s | 1,055,513..1,060,640 | 77..82 |
+| pathological 64 KiB+1 response | 32.905 us | 44.497 us | 44.497 us | 30,390.52 ops/s | 4,487..4,495 | 78 |
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection
 proves bounded work and failure, not network latency. Exact-source payload
-throughput ranged from 101.38 to 196.39 MB/s across typical and boundary
+throughput ranged from 48.93 to 100.78 MB/s across typical and boundary
 payload samples.
 
 Earlier runs on the same uncontrolled shared host produced drastically
 different wall times while allocations remained comparatively stable. The
-deadline-precedence repair only reorders bounded error-classification branches
-and is not treated as an optimization. An earlier correctness repair also
+causal-deadline repair only reorders bounded error-classification branches and
+adds test-only real-transport fixtures; it is not treated as an optimization.
+An earlier correctness repair also
 removed the `http.Client`
 redirect layer, so lower allocation counts across older runs include a
 mechanism change rather than a controlled optimization comparison. The
