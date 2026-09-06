@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -14,14 +16,18 @@ type dependencies struct {
 	wait      func(context.Context, time.Duration) error
 }
 
-// Dispatcher is an immutable outbound sender that is safe for concurrent use
-// when its Recorder fulfills the interface's concurrency contract. Calls
-// sharing a delivery ID still require consumer-owned durable coordination.
+// Dispatcher is an outbound sender with immutable delivery configuration and
+// explicit lifecycle state. It is safe for concurrent use when its Recorder
+// fulfills the interface's concurrency contract. Calls sharing a delivery ID
+// still require consumer-owned durable coordination. A Dispatcher must not be
+// copied after first use.
 type Dispatcher struct {
 	config    validatedConfig
 	transport http.RoundTripper
 	now       func() time.Time
 	wait      func(context.Context, time.Duration) error
+	closed    atomic.Bool
+	closeOnce sync.Once
 }
 
 // New validates configuration, copies the secret, and constructs an owned
@@ -48,6 +54,20 @@ func newDispatcher(config validatedConfig, deps dependencies) *Dispatcher {
 	return &Dispatcher{config: config, transport: deps.transport, now: deps.now, wait: deps.wait}
 }
 
+// Close prevents new delivery admission and releases idle connections owned
+// by the dispatcher's transport. Calls already admitted by Deliver may finish.
+// Close is safe to call repeatedly and concurrently. Complexity: the first
+// call is O(1+Ct) time and O(1+Cs) auxiliary space, where Ct/Cs are delegated
+// transport cleanup costs; subsequent calls are Theta(1).
+func (d *Dispatcher) Close() {
+	d.closed.Store(true)
+	d.closeOnce.Do(func() {
+		if transport, ok := d.transport.(interface{ CloseIdleConnections() }); ok {
+			transport.CloseIdleConnections()
+		}
+	})
+}
+
 // Deliver performs bounded signed attempts and records each actual attempt
 // before retry or return. All-input CPU time is
 // O(Vt(e,c,d,v,b)+sum(i=1..A)(b+r_i+c_i+m_i+w_i+Htime(k)+Pt(i,q_i)+Tt_i+Bt_i+Rt_i+Wt_i)), Omega(1), with no
@@ -72,6 +92,9 @@ func newDispatcher(config validatedConfig, deps dependencies) *Dispatcher {
 // violates its contract. No finite byte-only CPU bound exists for a body that
 // repeatedly returns (0, nil).
 func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
+	if d.closed.Load() {
+		return Result{}, ErrClosed
+	}
 	if ctx == nil {
 		return Result{}, fmt.Errorf("%w: nil context", ErrInvalid)
 	}

@@ -15,4 +15,6 @@ var (
 	ErrResponseTooLarge = errors.New("webhooks: response body too large")
 	// ErrDestination identifies DNS or address-policy rejection.
 	ErrDestination = errors.New("webhooks: destination rejected")
+	// ErrClosed identifies delivery rejected after dispatcher retirement began.
+	ErrClosed = errors.New("webhooks: dispatcher closed")
 )

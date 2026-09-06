@@ -1152,6 +1152,46 @@ Risks / non-goals:
   the real-consumer behavioral validation and exact dependency-pin gates.
 - No push, merge, PR, tag, release, deployment, or remote mutation occurs.
 
+### 2026-09-06 12:43:44 CDT - Add explicit dispatcher retirement
+
+Commit: `current commit`
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `docs/architecture.md`
+- `docs/feature-plan.md`
+- `docs/implementation-spec.md`
+- `docs/prd.md`
+- `docs/runtime-boundary.md`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/errors.go`
+- `pkg/webhooks/performance_test.go`
+- `workflow.toml`
+- `workflow/features/dispatcher-lifecycle-repair/README.md`
+
+Explanation:
+
+Add an explicit concurrent-safe dispatcher lifecycle. `Close` rejects new
+delivery admission with stable `ErrClosed`, lets already-admitted calls finish,
+and invokes the owned transport's idle-connection cleanup exactly once. Keep
+transport injection package-internal and leave consumer generation quiescence
+outside the library.
+
+Verification:
+
+- focused lifecycle and close-precedence tests
+- concurrent and repeated close exercise under race
+- issue-surface coverage and closed-path allocation benchmark
+- full repository, fuzz, external-consumer, and clean-clone gates
+
+Risks / non-goals:
+
+- `Close` does not cancel admitted calls or track consumer generations.
+- No PR, merge, push, tag, release, deployment, or remote mutation.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

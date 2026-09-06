@@ -2,6 +2,7 @@ package webhooks
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -51,6 +52,26 @@ func BenchmarkDeliver(b *testing.B) {
 			}
 		}
 	})
+}
+
+func BenchmarkClosedDeliver(b *testing.B) {
+	config, err := validateConfig(Config{Secret: Secret{KeyID: "key", Value: make([]byte, minSecretBytes)}, Recorder: discardRecorder{}})
+	if err != nil {
+		b.Fatal(err)
+	}
+	d := newDispatcher(config, dependencies{transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		b.Fatal("closed dispatcher reached transport")
+		return nil, nil
+	}), now: fixedClock, wait: noWait})
+	d.Close()
+	msg := validMessage()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if result, err := d.Deliver(context.Background(), msg); !errors.Is(err, ErrClosed) || result != (Result{}) {
+			b.Fatalf("closed Deliver result=%+v error=%v", result, err)
+		}
+	}
 }
 
 func sizeName(size int) string {
