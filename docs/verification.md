@@ -1,6 +1,6 @@
 # Verification status
 
-## Post-admission receipt-time repair candidate
+## Post-admission receipt-time repair
 
 Independent review report `/tmp/gotth-bb-v4-independent-judge-10.md` found
 that Dispatcher receipts exposed unquantized clock nanoseconds despite the
@@ -77,10 +77,12 @@ SHA-256 values are:
   `c0ecd853e2b05cc0e016d1acfbdf30d7454ddabe6b565443d050709e0bc41987` /
   `2cffa6aa86a31e21a1048d5993ff8a4990767ff0064809de1121dd52e4b39409`.
 
-The standalone base remains admitted. This post-admission compatibility repair
-is an unreleased candidate pending the two fresh independent reviews owned by
-the orchestrator. The real-consumer behavior and exact dependency pin remain
-separate hard release/compatibility gates under `docs/RELEASING.md`. No push,
+Two fresh independent reviews of exact evidence head
+`7d8a1b7011056894ee4f2cd91a7d2f74c0f5ccf7` returned CLEAN. Their canonical
+records are `independent-14.md` and `independent-15.md`. The standalone base and
+this post-admission compatibility repair are technically admitted. The
+real-consumer behavior and exact dependency pin remain separate hard
+release/compatibility gates under `docs/RELEASING.md`. No push,
 merge, PR, tag, release, deployment, live request, remote-repository mutation,
 or GOTTH Board mutation occurred.
 

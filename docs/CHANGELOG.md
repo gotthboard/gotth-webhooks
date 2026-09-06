@@ -1118,6 +1118,40 @@ Risks / non-goals:
 - No push, merge, PR, tag, release, deployment, live request, remote mutation,
   or GOTTH Board mutation is performed.
 
+### 2026-09-06 08:11:25 CDT - Admit receipt-time repair
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow/features/outbound-v1-admission/README.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/independent-14.md`
+- `workflow/features/outbound-v1-admission/review/independent-15.md`
+
+Explanation:
+
+Admit the post-admission receipt-time compatibility repair after two fresh
+independent reviews returned CLEAN at exact evidence head
+`7d8a1b7011056894ee4f2cd91a7d2f74c0f5ccf7`.
+
+Verification:
+
+- independent review 14: CLEAN, report SHA-256
+  `ccbe4a8f4847353dd8e4a538c648a1686738077823bf3f511ce3f5ec725fa1c3`
+- independent review 15: CLEAN, report SHA-256
+  `b4818d320ab0528e69ca71634e4e63277dfc6e32349b9f3f7b552b6bae331193`
+
+Risks / non-goals:
+
+- Technical admission does not tag or release the module and does not replace
+  the real-consumer behavioral validation and exact dependency-pin gates.
+- No push, merge, PR, tag, release, deployment, or remote mutation occurs.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

@@ -17,7 +17,7 @@ implementation admission.
 Post-admission source `c92f9aab1537bd49d035b7019ef7e00af44d5679`
 repairs the receipt persistence contract by converting each produced start and
 finish timestamp to UTC and truncating it to exact microsecond precision. This
-repair is an unreleased review candidate pending two fresh independent reviews;
-the existing `done` state describes the admitted base and is not an admission
-claim for this candidate. Real-consumer behavioral validation and the exact pin
-remain separate release/compatibility gates.
+repair is technically admitted after two fresh independent CLEAN reviews of
+exact evidence head `7d8a1b7011056894ee4f2cd91a7d2f74c0f5ccf7`.
+Real-consumer behavioral validation and the exact pin remain separate
+release/compatibility gates.

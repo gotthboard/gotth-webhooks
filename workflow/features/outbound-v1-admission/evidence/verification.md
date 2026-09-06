@@ -47,7 +47,8 @@ new helper is 100.0% covered. Exact commands, paths, hashes, fuzz counts,
 performance results, and limitations are in `docs/verification.md` and
 `docs/performance.md`.
 
-This is worker verification, not admission. Two fresh independent reviews are
-still orchestrator-owned. The base feature remains admitted, the repair remains
-unreleased, and the real-consumer behavior/pin remains a separate hard release
-and compatibility gate. No forbidden action occurred.
+Two fresh independent reviews of exact evidence head
+`7d8a1b7011056894ee4f2cd91a7d2f74c0f5ccf7` returned CLEAN. The base feature
+and repair are technically admitted and remain unreleased. Real-consumer
+behavioral validation and the exact dependency pin remain separate hard release
+and compatibility gates. No forbidden action occurred.
