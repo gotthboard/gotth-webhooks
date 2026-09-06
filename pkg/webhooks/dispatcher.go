@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -19,14 +18,20 @@ type dependencies struct {
 // Dispatcher is an outbound sender with immutable delivery configuration and
 // explicit lifecycle state. It is safe for concurrent use when its Recorder
 // fulfills the interface's concurrency contract. Calls sharing a delivery ID
-// still require consumer-owned durable coordination. A Dispatcher must not be
-// copied after first use.
+// still require consumer-owned durable coordination. Dispatcher value copies
+// share one lifecycle state.
 type Dispatcher struct {
 	config    validatedConfig
 	transport http.RoundTripper
 	now       func() time.Time
 	wait      func(context.Context, time.Duration) error
-	closed    atomic.Bool
+	lifecycle *dispatcherLifecycle
+}
+
+type dispatcherLifecycle struct {
+	mu        sync.Mutex
+	active    sync.WaitGroup
+	closed    bool
 	closeOnce sync.Once
 }
 
@@ -51,17 +56,29 @@ func New(cfg Config) (*Dispatcher, error) {
 // package-internal test dependencies. Complexity: time and auxiliary space
 // O(1), Omega(1), tight Theta(1).
 func newDispatcher(config validatedConfig, deps dependencies) *Dispatcher {
-	return &Dispatcher{config: config, transport: deps.transport, now: deps.now, wait: deps.wait}
+	return &Dispatcher{
+		config:    config,
+		transport: deps.transport,
+		now:       deps.now,
+		wait:      deps.wait,
+		lifecycle: &dispatcherLifecycle{},
+	}
 }
 
 // Close prevents new delivery admission and releases idle connections owned
-// by the dispatcher's transport. Calls already admitted by Deliver may finish.
-// Close is safe to call repeatedly and concurrently. Complexity: the first
-// call is O(1+Ct) time and O(1+Cs) auxiliary space, where Ct/Cs are delegated
-// transport cleanup costs; subsequent calls are Theta(1).
+// by the dispatcher's transport. Close waits for calls already admitted by
+// Deliver and is safe to call repeatedly and concurrently. Complexity: the
+// first call is O(1+A+Ct) CPU time and O(1+Cs) auxiliary space, where A is
+// synchronization work for admitted deliveries and Ct/Cs are delegated
+// transport cleanup costs. Wall latency includes admitted delivery work. Close
+// must not be called synchronously by a dependency executing inside Deliver.
 func (d *Dispatcher) Close() {
-	d.closed.Store(true)
-	d.closeOnce.Do(func() {
+	lifecycle := d.lifecycle
+	lifecycle.closeOnce.Do(func() {
+		lifecycle.mu.Lock()
+		lifecycle.closed = true
+		lifecycle.mu.Unlock()
+		lifecycle.active.Wait()
 		if transport, ok := d.transport.(interface{ CloseIdleConnections() }); ok {
 			transport.CloseIdleConnections()
 		}
@@ -92,9 +109,15 @@ func (d *Dispatcher) Close() {
 // violates its contract. No finite byte-only CPU bound exists for a body that
 // repeatedly returns (0, nil).
 func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
-	if d.closed.Load() {
+	lifecycle := d.lifecycle
+	lifecycle.mu.Lock()
+	if lifecycle.closed {
+		lifecycle.mu.Unlock()
 		return Result{}, ErrClosed
 	}
+	lifecycle.active.Add(1)
+	lifecycle.mu.Unlock()
+	defer lifecycle.active.Done()
 	if ctx == nil {
 		return Result{}, fmt.Errorf("%w: nil context", ErrInvalid)
 	}

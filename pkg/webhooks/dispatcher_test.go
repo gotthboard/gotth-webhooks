@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -74,7 +75,8 @@ func TestDispatcherCloseRejectsNewCallsAndLetsAdmittedCallFinish(t *testing.T) {
 		d.Close()
 		close(firstCloseDone)
 	}()
-	receiveBefore(t, transport.closeEntered, "transport cleanup")
+	waitForDispatcherClosed(t, d)
+	assertNotSignaled(t, transport.closeEntered, "transport cleanup before admitted delivery completed")
 
 	result, err := d.Deliver(nil, Message{})
 	if !errors.Is(err, ErrClosed) || result != (Result{}) {
@@ -98,13 +100,6 @@ func TestDispatcherCloseRejectsNewCallsAndLetsAdmittedCallFinish(t *testing.T) {
 	case <-time.After(20 * time.Millisecond):
 	}
 
-	close(transport.releaseClose)
-	receiveBefore(t, firstCloseDone, "first Close completion")
-	receiveBefore(t, secondCloseDone, "concurrent Close completion")
-	if got := transport.closeCount(); got != 1 {
-		t.Fatalf("transport cleanup calls=%d, want 1", got)
-	}
-
 	select {
 	case <-deliveryDone:
 		t.Fatal("Close interrupted an admitted delivery")
@@ -118,6 +113,13 @@ func TestDispatcherCloseRejectsNewCallsAndLetsAdmittedCallFinish(t *testing.T) {
 	if got := len(recorder.snapshot()); got != 1 {
 		t.Fatalf("admitted delivery receipts=%d, want 1", got)
 	}
+	receiveBefore(t, transport.closeEntered, "transport cleanup after admitted delivery")
+	if got := transport.closeCount(); got != 1 {
+		t.Fatalf("transport cleanup calls=%d, want 1", got)
+	}
+	close(transport.releaseClose)
+	receiveBefore(t, firstCloseDone, "first Close completion")
+	receiveBefore(t, secondCloseDone, "concurrent Close completion")
 
 	d.Close()
 	if got := transport.closeCount(); got != 1 {
@@ -137,6 +139,113 @@ func TestDispatcherCloseWithoutClosableTestTransport(t *testing.T) {
 	}
 	if got := transport.callCount(); got != 0 {
 		t.Fatalf("round trips=%d, want 0", got)
+	}
+}
+
+func TestCloseWaitsForAdmittedDeliveryBeforeFirstRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	transport := newCloseProbeTransport([]transportStep{{status: http.StatusNoContent}})
+	recorder := &memoryRecorder{}
+	clockEntered := make(chan struct{})
+	releaseClock := make(chan struct{})
+	var clockOnce sync.Once
+	var releaseOnce sync.Once
+	t.Cleanup(func() { releaseOnce.Do(func() { close(releaseClock) }) })
+	clock := func() time.Time {
+		clockOnce.Do(func() {
+			close(clockEntered)
+			<-releaseClock
+		})
+		return fixedClock()
+	}
+	d := newTestDispatcher(t, recorder, transport, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, clock, noWait)
+
+	deliveryDone := deliverAsync(d)
+	receiveBefore(t, clockEntered, "admitted delivery clock pause")
+	closeDone := closeAsync(d)
+	waitForDispatcherClosed(t, d)
+	assertNotSignaled(t, transport.closeEntered, "transport cleanup before admitted delivery reached RoundTrip")
+
+	releaseOnce.Do(func() { close(releaseClock) })
+	outcome := receiveDeliveryBefore(t, deliveryDone, "admitted delivery completion")
+	if outcome.err != nil || !outcome.result.Delivered {
+		t.Fatalf("admitted delivery result=%+v error=%v", outcome.result, outcome.err)
+	}
+	receiveBefore(t, transport.closeEntered, "transport cleanup after admitted delivery")
+	receiveBefore(t, closeDone, "Close completion")
+	if got := transport.counts(); got != [2]int{1, 1} {
+		t.Fatalf("transport counts=%v, want [round trips=1 close calls=1]", got)
+	}
+}
+
+func TestCloseWaitsForAdmittedDeliveryBetweenRetries(t *testing.T) {
+	t.Parallel()
+
+	transport := newCloseProbeTransport([]transportStep{{status: http.StatusServiceUnavailable}, {status: http.StatusNoContent}})
+	recorder := &memoryRecorder{}
+	waitEntered := make(chan struct{})
+	releaseWait := make(chan struct{})
+	var waitOnce sync.Once
+	var releaseOnce sync.Once
+	t.Cleanup(func() { releaseOnce.Do(func() { close(releaseWait) }) })
+	wait := func(context.Context, time.Duration) error {
+		waitOnce.Do(func() {
+			close(waitEntered)
+			<-releaseWait
+		})
+		return nil
+	}
+	d := newTestDispatcher(t, recorder, transport, RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, fixedClock, wait)
+
+	deliveryDone := deliverAsync(d)
+	receiveBefore(t, waitEntered, "between-retry pause")
+	closeDone := closeAsync(d)
+	waitForDispatcherClosed(t, d)
+	assertNotSignaled(t, transport.closeEntered, "transport cleanup before admitted retry completed")
+
+	releaseOnce.Do(func() { close(releaseWait) })
+	outcome := receiveDeliveryBefore(t, deliveryDone, "retried delivery completion")
+	if outcome.err != nil || !outcome.result.Delivered || outcome.result.Attempts != 2 {
+		t.Fatalf("retried delivery result=%+v error=%v", outcome.result, outcome.err)
+	}
+	receiveBefore(t, transport.closeEntered, "transport cleanup after retry completion")
+	receiveBefore(t, closeDone, "Close completion")
+	if got := transport.counts(); got != [2]int{2, 1} {
+		t.Fatalf("transport counts=%v, want [round trips=2 close calls=1]", got)
+	}
+}
+
+func TestDispatcherCopiesShareLifecycle(t *testing.T) {
+	t.Parallel()
+
+	transport := &scriptedTransport{steps: []transportStep{{status: http.StatusNoContent}}}
+	d := testDispatcher(t, &memoryRecorder{}, transport, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+	copied := *d
+	d.Close()
+
+	if result, err := copied.Deliver(context.Background(), validMessage()); !errors.Is(err, ErrClosed) || result != (Result{}) {
+		t.Fatalf("copied dispatcher result=%+v error=%v, want zero result and ErrClosed", result, err)
+	}
+	if got := transport.callCount(); got != 0 {
+		t.Fatalf("copied dispatcher round trips=%d, want 0", got)
+	}
+}
+
+func TestDispatcherClosedPathAllocations(t *testing.T) {
+	d := testDispatcher(t, &memoryRecorder{}, &scriptedTransport{}, RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond}, noWait)
+	d.Close()
+	msg := validMessage()
+	var result Result
+	var err error
+	deliverAllocs := testing.AllocsPerRun(1000, func() {
+		result, err = d.Deliver(context.Background(), msg)
+	})
+	if deliverAllocs != 0 || !errors.Is(err, ErrClosed) || result != (Result{}) {
+		t.Fatalf("closed Deliver allocs=%f result=%+v error=%v", deliverAllocs, result, err)
+	}
+	if closeAllocs := testing.AllocsPerRun(1000, d.Close); closeAllocs != 0 {
+		t.Fatalf("repeated Close allocs=%f, want 0", closeAllocs)
 	}
 }
 
@@ -760,6 +869,116 @@ type lifecycleTransport struct {
 	releaseRoundTrip chan struct{}
 	closeEntered     chan struct{}
 	releaseClose     chan struct{}
+}
+
+type closeProbeTransport struct {
+	mu           sync.Mutex
+	steps        []transportStep
+	roundTrips   int
+	closeCalls   int
+	closeEntered chan struct{}
+	closeOnce    sync.Once
+}
+
+func newCloseProbeTransport(steps []transportStep) *closeProbeTransport {
+	return &closeProbeTransport{steps: steps, closeEntered: make(chan struct{})}
+}
+
+func (t *closeProbeTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
+	t.mu.Lock()
+	step := t.steps[t.roundTrips]
+	t.roundTrips++
+	t.mu.Unlock()
+	if step.err != nil {
+		return nil, step.err
+	}
+	return response(step.status, step.body, step.retryAfter), nil
+}
+
+func (t *closeProbeTransport) CloseIdleConnections() {
+	t.mu.Lock()
+	t.closeCalls++
+	t.mu.Unlock()
+	t.closeOnce.Do(func() { close(t.closeEntered) })
+}
+
+func (t *closeProbeTransport) counts() [2]int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return [2]int{t.roundTrips, t.closeCalls}
+}
+
+type deliveryOutcome struct {
+	result Result
+	err    error
+}
+
+func deliverAsync(d *Dispatcher) <-chan deliveryOutcome {
+	done := make(chan deliveryOutcome, 1)
+	go func() {
+		result, err := d.Deliver(context.Background(), validMessage())
+		done <- deliveryOutcome{result: result, err: err}
+	}()
+	return done
+}
+
+func closeAsync(d *Dispatcher) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		d.Close()
+		close(done)
+	}()
+	return done
+}
+
+func newTestDispatcher(t *testing.T, recorder Recorder, transport http.RoundTripper, retry RetryPolicy, now func() time.Time, wait func(context.Context, time.Duration) error) *Dispatcher {
+	t.Helper()
+	validated, err := validateConfig(Config{Secret: Secret{KeyID: "key-1", Value: []byte(strings.Repeat("s", minSecretBytes))}, Recorder: recorder, Retry: retry, AttemptTimeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newDispatcher(validated, dependencies{transport: transport, now: now, wait: wait})
+}
+
+func waitForDispatcherClosed(t *testing.T, d *Dispatcher) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for {
+		result, err := d.Deliver(nil, Message{})
+		if errors.Is(err, ErrClosed) {
+			if result != (Result{}) {
+				t.Fatalf("closed probe result=%+v, want zero", result)
+			}
+			return
+		}
+		if !errors.Is(err, ErrInvalid) {
+			t.Fatalf("closed probe error=%v, want ErrInvalid before transition or ErrClosed after", err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("timed out waiting for dispatcher closed transition")
+		}
+		runtime.Gosched()
+	}
+}
+
+func assertNotSignaled(t *testing.T, ch <-chan struct{}, operation string) {
+	t.Helper()
+	select {
+	case <-ch:
+		t.Fatal(operation)
+	case <-time.After(20 * time.Millisecond):
+	}
+}
+
+func receiveDeliveryBefore(t *testing.T, ch <-chan deliveryOutcome, operation string) deliveryOutcome {
+	t.Helper()
+	select {
+	case outcome := <-ch:
+		return outcome
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for %s", operation)
+		return deliveryOutcome{}
+	}
 }
 
 func newLifecycleTransport() *lifecycleTransport {

@@ -50,6 +50,9 @@ admitted deliveries and Ct/Cs are delegated owned-transport cleanup costs;
 wall latency includes every admitted delivery's delegated work. Repeat and
 concurrent calls wait for the first call and perform no second cleanup. It
 returns no error because the standard transport cleanup operation returns none.
+Calling `Close` synchronously from a transport, wait, or recorder callback in
+that same dispatcher's admitted delivery is invalid because `Close` waits for
+the callback's delivery to return.
 
 `Message` contains endpoint, stable delivery ID, consumer-durable first attempt
 number, opaque event type, content type, and body. Zero first attempt defaults

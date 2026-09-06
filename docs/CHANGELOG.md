@@ -1229,6 +1229,41 @@ Risks / non-goals:
 - Evidence does not self-admit the repair or create a release promise.
 - No PR, merge, push, tag, release, deployment, or remote mutation.
 
+### 2026-09-06 14:20:50 CDT - Drain admitted deliveries before cleanup
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `docs/implementation-spec.md`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `workflow.toml`
+
+Explanation:
+
+Repair the lifecycle race found by independent review 1. Serialize delivery
+admission with the closed transition, wait for every admitted delivery to
+finish, and only then invoke owned transport idle cleanup once. Dispatcher
+value copies share the same lifecycle state. Preserve closed-before-validation
+precedence and the zero `Result` returned with `ErrClosed`.
+
+Verification:
+
+- expected-red pauses before the first `RoundTrip` and between retries against
+  rejected source `065ba1d9f47219aab7e3664c275c8f9ba9b60838`
+- repaired lifecycle and value-copy regressions under race, 50 repetitions
+- zero-allocation closed `Deliver` and repeat `Close` assertions
+
+Risks / non-goals:
+
+- `Close` may wait indefinitely for a dependency that violates its context
+  contract and must not be called synchronously from the delivery it drains.
+- No per-request tracker, cancellation registry, consumer policy, public
+  transport injection, PR, merge, push, tag, release, or remote mutation.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`
