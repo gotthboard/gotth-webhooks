@@ -2,10 +2,14 @@
 
 ## Endpoints
 
-- Canonical development and change tracking:
-  <https://git.dannyhunn.com/agents/gotth-webhooks>
+- Canonical development source:
+  <https://git.dannyhunn.com/gotthboard/gotth-webhooks>
 - Public clone and, only after implementation admission, future releases:
   <https://github.com/gotthboard/gotth-webhooks>
+- Public bug tracker:
+  <https://github.com/gotthboard/gotth-webhooks/issues>
+- Private vulnerability reports:
+  <https://github.com/gotthboard/gotth-webhooks/security/advisories/new>
 
 Forgejo pushes one way to GitHub. GitHub does not feed commits or tags back to
 Forgejo. A ref is distributed only when the exact object ID is visible at both
