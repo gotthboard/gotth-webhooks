@@ -106,12 +106,15 @@ While the process survives, the library records an attempt result before
 another attempt or return. Recording uses a separate bounded context so caller
 cancellation does not silently erase the receipt. If recording fails, delivery
 stops with an explicit receipt error; `Result.LastReceipt` exposes the exact
-record for reconciliation. Its delivery fingerprint is sensitive derived data
-and must not be logged or exposed broadly. A process crash after sending but
-before recording can leave an unrecorded unknown attempt. No library can
-atomically commit a receiver effect and sender receipt across HTTP. Consumers
-and receivers must use stable identity for durable deduplication and reconcile
-unknown/in-flight work before another send.
+record for reconciliation. Each start and finish clock reading is converted to
+UTC and truncated, never rounded, to an exact microsecond before receipt
+construction. Truncation preserves timestamp order and bounds each endpoint's
+discarded precision below one microsecond. The delivery fingerprint is
+sensitive derived data and must not be logged or exposed broadly. A process
+crash after sending but before recording can leave an unrecorded unknown
+attempt. No library can atomically commit a receiver effect and sender receipt
+across HTTP. Consumers and receivers must use stable identity for durable
+deduplication and reconcile unknown/in-flight work before another send.
 
 ## Concurrency
 

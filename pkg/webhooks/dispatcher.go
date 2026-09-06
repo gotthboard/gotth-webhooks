@@ -151,13 +151,13 @@ func (d *Dispatcher) Deliver(ctx context.Context, msg Message) (Result, error) {
 // copy. Transport and response-body I/O latency are delegated and cooperatively
 // bounded by attemptTimeout.
 func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attempt int) (Receipt, string, error) {
-	started := d.now().UTC()
+	started := canonicalReceiptTime(d.now())
 	receipt := Receipt{DeliveryID: msg.deliveryID, DeliveryFingerprint: msg.fingerprint, Attempt: attempt, RequestTimestamp: started.Unix(), StartedAt: started}
 	attemptCtx, cancel := context.WithTimeout(parent, d.config.attemptTimeout)
 	defer cancel()
 	req, _, err := buildRequest(attemptCtx, msg, d.config.secret, attempt, receipt.RequestTimestamp)
 	if err != nil {
-		receipt.FinishedAt = d.now().UTC()
+		receipt.FinishedAt = canonicalReceiptTime(d.now())
 		receipt.Outcome = OutcomePermanent
 		receipt.ErrorCode = ErrorTransport
 		return receipt, "", err
@@ -167,14 +167,14 @@ func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attem
 		if resp != nil && resp.Body != nil {
 			_ = resp.Body.Close()
 		}
-		receipt.FinishedAt = d.now().UTC()
+		receipt.FinishedAt = canonicalReceiptTime(d.now())
 		receipt.Outcome, receipt.ErrorCode = classifyAttemptFailure(parent, attemptCtx, err)
 		return receipt, "", err
 	}
 	receipt.StatusCode = resp.StatusCode
 	retryAfter := resp.Header.Get("Retry-After")
 	receipt.ResponseBytes, err = consumeResponse(resp.Body)
-	receipt.FinishedAt = d.now().UTC()
+	receipt.FinishedAt = canonicalReceiptTime(d.now())
 	if errors.Is(err, ErrResponseTooLarge) {
 		receipt.Outcome = OutcomePermanent
 		receipt.ErrorCode = ErrorResponseLimit
@@ -189,6 +189,13 @@ func (d *Dispatcher) attempt(parent context.Context, msg validatedMessage, attem
 		receipt.ErrorCode = ErrorHTTPStatus
 	}
 	return receipt, retryAfter, nil
+}
+
+// canonicalReceiptTime converts one clock reading to the receipt persistence
+// domain: UTC with sub-microsecond precision truncated. Complexity: time and
+// auxiliary space O(1), Omega(1), tight Theta(1).
+func canonicalReceiptTime(value time.Time) time.Time {
+	return value.UTC().Truncate(time.Microsecond)
 }
 
 // classifyAttemptFailure applies cancellation, deterministic-failure, and

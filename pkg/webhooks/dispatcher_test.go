@@ -389,6 +389,105 @@ func TestDeliverReceiptFailureStopsRetries(t *testing.T) {
 	}
 }
 
+func TestReceiptTimesAreExactUTCMicroseconds(t *testing.T) {
+	t.Parallel()
+
+	local := time.FixedZone("test-non-UTC", 5*60*60+30*60)
+	startedInput := time.Date(2026, 9, 6, 9, 10, 11, 456789123, local)
+	finishedInput := startedInput.Add(2 * time.Millisecond)
+	wantStarted := startedInput.UTC().Truncate(time.Microsecond)
+	wantFinished := finishedInput.UTC().Truncate(time.Microsecond)
+
+	tests := []struct {
+		name          string
+		transport     func() http.RoundTripper
+		recorderError error
+		wantError     error
+		wantOutcome   Outcome
+	}{
+		{
+			name: "delivered",
+			transport: func() http.RoundTripper {
+				return &scriptedTransport{steps: []transportStep{{status: http.StatusNoContent}}}
+			},
+			wantOutcome: OutcomeDelivered,
+		},
+		{
+			name: "permanent transport failure",
+			transport: func() http.RoundTripper {
+				return &scriptedTransport{steps: []transportStep{{err: errors.New("permanent transport failure")}}}
+			},
+			wantError:   ErrPermanent,
+			wantOutcome: OutcomePermanent,
+		},
+		{
+			name: "receipt failure",
+			transport: func() http.RoundTripper {
+				return &scriptedTransport{steps: []transportStep{{status: http.StatusNoContent}}}
+			},
+			recorderError: errors.New("receipt unavailable"),
+			wantError:     ErrReceipt,
+			wantOutcome:   OutcomeDelivered,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			recorder := &memoryRecorder{err: tc.recorderError}
+			validated, err := validateConfig(Config{
+				Secret:   Secret{KeyID: "key-1", Value: []byte(strings.Repeat("s", minSecretBytes))},
+				Recorder: recorder,
+				Retry:    RetryPolicy{MaxAttempts: 1, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			clockValues := []time.Time{startedInput, finishedInput}
+			clockCalls := 0
+			clock := func() time.Time {
+				if clockCalls >= len(clockValues) {
+					t.Fatalf("clock called more than %d times", len(clockValues))
+				}
+				value := clockValues[clockCalls]
+				clockCalls++
+				return value
+			}
+			d := newDispatcher(validated, dependencies{transport: tc.transport(), now: clock, wait: noWait})
+
+			result, err := d.Deliver(context.Background(), validMessage())
+			if !errors.Is(err, tc.wantError) {
+				t.Fatalf("error=%v want=%v", err, tc.wantError)
+			}
+			if result.Outcome != tc.wantOutcome || clockCalls != len(clockValues) {
+				t.Fatalf("result=%+v clock calls=%d", result, clockCalls)
+			}
+			recorded := recorder.snapshot()
+			if len(recorded) != 1 {
+				t.Fatalf("recorded receipts=%d", len(recorded))
+			}
+			receipt := recorded[0]
+			if receipt != result.LastReceipt {
+				t.Fatalf("recorded receipt=%+v LastReceipt=%+v", receipt, result.LastReceipt)
+			}
+			if receipt.StartedAt != wantStarted || receipt.FinishedAt != wantFinished {
+				t.Fatalf("receipt times=(%v, %v), want=(%v, %v)", receipt.StartedAt, receipt.FinishedAt, wantStarted, wantFinished)
+			}
+			if receipt.StartedAt.Location() != time.UTC || receipt.FinishedAt.Location() != time.UTC ||
+				receipt.StartedAt.Nanosecond()%int(time.Microsecond) != 0 ||
+				receipt.FinishedAt.Nanosecond()%int(time.Microsecond) != 0 {
+				t.Fatalf("receipt times are not exact UTC microseconds: %+v", receipt)
+			}
+			if got, want := receipt.FinishedAt.Sub(receipt.StartedAt), finishedInput.Sub(startedInput); got != want || got < 0 {
+				t.Fatalf("receipt duration=%s want=%s", got, want)
+			}
+			if receipt.RequestTimestamp != wantStarted.Unix() {
+				t.Fatalf("request timestamp=%d want=%d", receipt.RequestTimestamp, wantStarted.Unix())
+			}
+		})
+	}
+}
+
 func TestDeliverCopiesPayloadAndSigningSecret(t *testing.T) {
 	t.Parallel()
 

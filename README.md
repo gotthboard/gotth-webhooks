@@ -3,11 +3,13 @@
 Consumer-neutral mechanics for bounded, signed outbound webhooks.
 
 > **Distribution:** Forgejo remains canonical development. GitHub is the public
-> clone and future Go/release endpoint after release admission. The standalone
-> implementation is technically admitted but unreleased; no tag or
-> compatibility promise exists yet. Release and compatibility remain blocked
-> until one real product consumer supplies a contract, validates behavior
-> against an exact dependency pin, and completes the release gates. See
+> clone and future Go/release endpoint after release admission. The base
+> standalone implementation is technically admitted, while this receipt-time
+> compatibility repair remains an unreleased review candidate pending two
+> independent reviews; no tag or compatibility promise exists yet. Release and
+> compatibility remain blocked until one real product consumer supplies a
+> contract, validates behavior against an exact dependency pin, and completes
+> the release gates. See
 > [the distribution contract](docs/distribution.md).
 
 ## Boundary
@@ -96,9 +98,11 @@ allocates a monotonically increasing `FirstAttempt` across invocations. On an
 `ErrReceipt`, `Result.LastReceipt` contains the exact record for store
 reconciliation without resending. Its stable fingerprint is sensitive derived
 data that can support guessing and correlation; restrict access to stored
-receipts and never log the fingerprint or whole result. An in-memory map would not protect
-multiple processes or survive a crash, so the library does not fake that
-guarantee.
+receipts and never log the fingerprint or whole result. Library-produced
+`StartedAt` and `FinishedAt` values are explicitly UTC and truncated to exact
+microsecond precision before both recorder and result exposure. An in-memory
+map would not protect multiple processes or survive a crash, so the library
+does not fake that guarantee.
 
 ## Receiver contract
 

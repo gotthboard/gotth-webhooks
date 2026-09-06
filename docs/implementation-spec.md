@@ -125,7 +125,14 @@ this library when operating large fleets.
 A receipt contains delivery ID, a stable SHA-256 delivery fingerprint,
 one-based attempt, request timestamp, start and finish times, outcome, status
 code when present, bounded response-byte count, and a stable error class. The
-fingerprint binds normalized target, event type, content type, and body while
+library converts each start and finish clock reading to UTC and applies
+`time.Truncate(time.Microsecond)` before passing the receipt to `Record` or
+exposing it through `Result.LastReceipt`. Produced values therefore have no
+hidden local zone and their nanosecond field is exactly divisible by 1,000.
+Truncation, rather than rounding or datastore conversion, is the canonical
+precision rule. For ordered raw clock readings it preserves start/finish order;
+the measured interval can change by less than one microsecond at each endpoint.
+The fingerprint binds normalized target, event type, content type, and body while
 excluding attempt, timestamp, and signing key so retries and key rotation keep
 one identity. It contains no raw endpoint, event, body, key ID, signature,
 response body, or raw error string. The unkeyed fingerprint is still sensitive

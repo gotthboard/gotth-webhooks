@@ -53,8 +53,11 @@ selects defaults, and MIME grammar rejects values before byte length does.
 Completeness oracles are exact request-body SHA-256, captured request-target
 and headers, exact attempt and recorder counts, response byte count including
 the overflow probe, known address-answer cardinality, and listener-observed
-numeric dial targets. A 2xx status without a completely bounded body read is
-not success.
+numeric dial targets. Receipt-time oracles use injected non-UTC clock values
+with sub-microsecond precision and require exact UTC microsecond values in both
+the recorder callback and `Result.LastReceipt`, while preserving nonnegative
+start/finish order. A 2xx status without a completely bounded body read is not
+success.
 
 Warnings, every 3xx including malformed `Location`, deterministic TLS/protocol/
 header-limit failures, partial response reads, mixed public/private DNS answers,

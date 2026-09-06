@@ -1039,6 +1039,46 @@ Risks / non-goals:
 - No push, merge, PR, tag, release, deployment, live request, or GOTTH Board
   mutation is performed by this admission commit.
 
+### 2026-09-06 07:24:19 CDT - Canonicalize receipt timestamps
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `docs/prd.md`
+- `docs/runtime-boundary.md`
+- `pkg/webhooks/dispatcher.go`
+- `pkg/webhooks/dispatcher_test.go`
+- `pkg/webhooks/types.go`
+
+Explanation:
+
+Convert every library-produced receipt start and finish clock reading to UTC
+and truncate it to exact microsecond precision before recorder or result
+exposure. Use the existing private injected clock seam and one private
+canonicalization helper; do not add a public clock or datastore adapter.
+
+Verification:
+
+- expected-red delivered, permanent-failure, and receipt-failure regression
+  with non-UTC sub-microsecond clock values
+- focused exact-time and adjacent delivery tests under `GOMAXPROCS=2` and
+  `-p=1`
+- exact-source development-host gates are recorded separately
+
+Risks / non-goals:
+
+- Each timestamp can move earlier by less than one microsecond. Truncation
+  preserves order for ordered clock readings; interval precision is bounded by
+  the two truncated endpoints.
+- This candidate does not change the signed Unix-second timestamp, add
+  PostgreSQL behavior, release the module, or claim the two required
+  independent reviews.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

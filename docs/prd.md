@@ -46,8 +46,10 @@ compile fixture is not that evidence.
   through a required consumer-owned durable interface before returning or
   starting another attempt. Records contain metadata, never payloads, secrets,
   signatures, raw endpoints, response bodies, or raw errors. The stable
-  semantics fingerprint is sensitive derived data, not log-safe metadata. A
-  crash between HTTP completion and recording remains an explicit unknown outcome.
+  semantics fingerprint is sensitive derived data, not log-safe metadata.
+  Produce receipt start and finish times in UTC, truncated to exact microsecond
+  precision before recorder or result exposure. A crash between HTTP completion
+  and recording remains an explicit unknown outcome.
 - `WHK-010`: Support secret rotation explicitly through a signed key ID. A
   dispatcher signs with exactly one configured current key; receivers own the
   bounded active/retired verification-key set and retirement window.

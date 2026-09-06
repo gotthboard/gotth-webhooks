@@ -97,7 +97,9 @@ const (
 // Receipt is the minimal durable audit record for one actual HTTP attempt. It
 // intentionally excludes endpoint, event, payload, key, signature, response
 // body, and raw error text. DeliveryFingerprint is sensitive derived data:
-// callers must restrict its storage and must not log it.
+// callers must restrict its storage and must not log it. Library-produced
+// StartedAt and FinishedAt values are in UTC and truncated to exact
+// microsecond precision before Record and Result exposure.
 type Receipt struct {
 	DeliveryID          string
 	DeliveryFingerprint [32]byte
