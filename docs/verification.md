@@ -1,5 +1,21 @@
 # Verification status
 
+## Dispatcher lifecycle repair candidate
+
+Source `20a122362ede5c6c934d39e809ff52747887bd1f` adds the public
+`Dispatcher.Close` and `ErrClosed` contracts without public dependency
+injection or request tracking. Exact Go 1.26.6 development-host evidence passed
+full, verify, race coverage, full/focused race x50, all three existing fuzz
+targets, benchmark, external-consumer, and second-clean-clone gates. Repository
+coverage is 97.4%; `Close` and every changed lifecycle decision are 100.0%
+covered. The closed path observed 0 B/op and 0 allocations/op.
+
+Raw logs, runner, coverage profile, identities, hashes, limitations, and the
+exact test oracle are retained under
+`workflow/features/dispatcher-lifecycle-repair/evidence`. The feature remains
+`in_progress` pending independent review and orchestrator admission. No remote
+mutation or release action occurred.
+
 ## Post-admission receipt-time repair
 
 Independent review report `/tmp/gotth-bb-v4-independent-judge-10.md` found

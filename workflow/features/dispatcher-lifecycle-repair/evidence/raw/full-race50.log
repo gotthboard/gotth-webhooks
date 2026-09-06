@@ -1,0 +1,10 @@
+gate=full-race50
+started_utc=2026-09-06T18:18:01Z
+head_before=20a122362ede5c6c934d39e809ff52747887bd1f
+status_before_begin
+status_before_end
+ok  	github.com/gotthboard/gotth-webhooks/pkg/webhooks	7.005s
+head_after=20a122362ede5c6c934d39e809ff52747887bd1f
+status_after_begin
+status_after_end
+finished_utc=2026-09-06T18:18:10Z

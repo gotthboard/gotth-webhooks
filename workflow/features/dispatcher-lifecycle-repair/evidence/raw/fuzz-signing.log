@@ -1,0 +1,15 @@
+gate=fuzz-signing
+started_utc=2026-09-06T18:18:21Z
+head_before=20a122362ede5c6c934d39e809ff52747887bd1f
+status_before_begin
+status_before_end
+fuzz: elapsed: 0s, gathering baseline coverage: 0/36 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 36/36 completed, now fuzzing with 64 workers
+fuzz: elapsed: 3s, execs: 517188 (172391/sec), new interesting: 1 (total: 37)
+fuzz: elapsed: 5s, execs: 897677 (181787/sec), new interesting: 2 (total: 38)
+PASS
+ok  	github.com/gotthboard/gotth-webhooks/pkg/webhooks	5.129s
+head_after=20a122362ede5c6c934d39e809ff52747887bd1f
+status_after_begin
+status_after_end
+finished_utc=2026-09-06T18:18:27Z

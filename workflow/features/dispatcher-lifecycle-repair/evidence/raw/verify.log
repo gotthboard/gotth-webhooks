@@ -1,0 +1,14 @@
+gate=verify
+started_utc=2026-09-06T18:17:55Z
+head_before=20a122362ede5c6c934d39e809ff52747887bd1f
+status_before_begin
+status_before_end
+version="$(go env GOVERSION)"; test "${version%%-*}" = "go1.26.6"
+test -z "$(gofmt -l $(git ls-files --cached --others --exclude-standard -- '*.go'))"
+go vet -mod=readonly ./...
+go test -mod=readonly -race -cover ./...
+ok  	github.com/gotthboard/gotth-webhooks/pkg/webhooks	1.172s	coverage: 97.4% of statements
+head_after=20a122362ede5c6c934d39e809ff52747887bd1f
+status_after_begin
+status_after_end
+finished_utc=2026-09-06T18:17:58Z

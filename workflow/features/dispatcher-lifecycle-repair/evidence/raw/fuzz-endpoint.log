@@ -1,0 +1,16 @@
+gate=fuzz-endpoint
+started_utc=2026-09-06T18:18:13Z
+head_before=20a122362ede5c6c934d39e809ff52747887bd1f
+status_before_begin
+status_before_end
+fuzz: elapsed: 0s, gathering baseline coverage: 0/253 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 253/253 completed, now fuzzing with 64 workers
+fuzz: elapsed: 3s, execs: 559314 (186205/sec), new interesting: 46 (total: 299)
+fuzz: elapsed: 6s, execs: 1047369 (162888/sec), new interesting: 71 (total: 324)
+fuzz: elapsed: 6s, execs: 1047369 (0/sec), new interesting: 71 (total: 324)
+PASS
+ok  	github.com/gotthboard/gotth-webhooks/pkg/webhooks	6.070s
+head_after=20a122362ede5c6c934d39e809ff52747887bd1f
+status_after_begin
+status_after_end
+finished_utc=2026-09-06T18:18:21Z

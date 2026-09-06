@@ -1154,7 +1154,9 @@ Risks / non-goals:
 
 ### 2026-09-06 12:43:44 CDT - Add explicit dispatcher retirement
 
-Commit: `current commit`
+Planning commit: `0a100b0a484706174b7f675f016cc78206e652b2`
+
+Source commit: `20a122362ede5c6c934d39e809ff52747887bd1f`
 
 Affected files:
 
@@ -1190,6 +1192,41 @@ Verification:
 Risks / non-goals:
 
 - `Close` does not cancel admitted calls or track consumer generations.
+- No PR, merge, push, tag, release, deployment, or remote mutation.
+
+### 2026-09-06 13:23:39 CDT - Record dispatcher lifecycle evidence
+
+Commit: `current commit`
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.toml`
+- `workflow.events.jsonl`
+- `workflow/COVERAGE.md`
+- `workflow/features/dispatcher-lifecycle-repair/README.md`
+- `workflow/features/dispatcher-lifecycle-repair/evidence/**`
+
+Explanation:
+
+Retain the exact-source development runner, raw gate logs, race coverage,
+function report, hashes, and clean-clone proof for source
+`20a122362ede5c6c934d39e809ff52747887bd1f`. Keep the repair `in_progress`
+because independent review and admission are orchestrator-owned.
+
+Verification:
+
+- full, verify, race coverage, full/focused race x50: PASS
+- all three five-second fuzz campaigns: PASS
+- external-consumer compile and second clean clone: PASS
+- repository coverage 97.4%; changed lifecycle surface 100.0%
+- closed admission 74.66..87.41 ns/op, 0 B/op, 0 allocs/op
+
+Risks / non-goals:
+
+- Evidence does not self-admit the repair or create a release promise.
 - No PR, merge, push, tag, release, deployment, or remote mutation.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
