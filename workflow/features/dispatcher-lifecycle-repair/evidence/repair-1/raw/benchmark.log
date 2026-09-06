@@ -1,0 +1,75 @@
+gate=benchmark
+started_utc=2026-09-06T19:24:32Z
+head_before=120db639e874419a71af4e10447b8e9ea1f73913
+status_before_begin
+status_before_end
+goos: linux
+goarch: amd64
+pkg: github.com/gotthboard/gotth-webhooks/pkg/webhooks
+cpu: AMD EPYC 7551P 32-Core Processor
+BenchmarkDeliver/empty-64    	    7154	     25219 ns/op	    4343 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4393	     28460 ns/op	    4337 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4264	     28643 ns/op	    4340 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4186	     28630 ns/op	    4347 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4198	     28684 ns/op	    4343 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4082	     29369 ns/op	    4346 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    3883	     29063 ns/op	    4347 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4274	     29097 ns/op	    4344 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4243	     26828 ns/op	    4336 B/op	      73 allocs/op
+BenchmarkDeliver/empty-64    	    4064	     29605 ns/op	    4338 B/op	      73 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3541	     33575 ns/op	  30.50 MB/s	    5379 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3493	     34362 ns/op	  29.80 MB/s	    5375 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3596	     34802 ns/op	  29.42 MB/s	    5384 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3586	     34138 ns/op	  30.00 MB/s	    5385 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3477	     34763 ns/op	  29.46 MB/s	    5386 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3580	     35097 ns/op	  29.18 MB/s	    5386 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3610	     34499 ns/op	  29.68 MB/s	    5379 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3578	     34445 ns/op	  29.73 MB/s	    5371 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3676	     33896 ns/op	  30.21 MB/s	    5382 B/op	      74 allocs/op
+BenchmarkDeliver/small-1KiB-64         	    3421	     34283 ns/op	  29.87 MB/s	    5374 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     382	    313625 ns/op	 208.96 MB/s	   70632 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     378	    309554 ns/op	 211.71 MB/s	   70563 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     385	    305500 ns/op	 214.52 MB/s	   70668 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     404	    306484 ns/op	 213.83 MB/s	   70653 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     372	    299754 ns/op	 218.63 MB/s	   70795 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     408	    316293 ns/op	 207.20 MB/s	   70729 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     374	    299702 ns/op	 218.67 MB/s	   70624 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     400	    274419 ns/op	 238.82 MB/s	   70659 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     396	    297999 ns/op	 219.92 MB/s	   70667 B/op	      74 allocs/op
+BenchmarkDeliver/typical-64KiB-64      	     396	    294711 ns/op	 222.37 MB/s	   70603 B/op	      74 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      27	   4498065 ns/op	 233.12 MB/s	 1060793 B/op	      77 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      30	   4451399 ns/op	 235.56 MB/s	 1060335 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      30	   3678795 ns/op	 285.03 MB/s	 1060339 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      30	   4402361 ns/op	 238.18 MB/s	 1060038 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      28	   3932659 ns/op	 266.63 MB/s	 1059556 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      30	   3779763 ns/op	 277.42 MB/s	 1060042 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      30	   4344910 ns/op	 241.33 MB/s	 1060632 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      33	   4038190 ns/op	 259.66 MB/s	 1059386 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      32	   4555786 ns/op	 230.16 MB/s	 1059590 B/op	      76 allocs/op
+BenchmarkDeliver/boundary-1MiB-64      	      30	   4481458 ns/op	 233.98 MB/s	 1059742 B/op	      76 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    2977	     36222 ns/op	    4530 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3267	     36567 ns/op	    4534 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3483	     35893 ns/op	    4523 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3238	     36367 ns/op	    4534 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3450	     32393 ns/op	    4525 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3397	     32960 ns/op	    4529 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3466	     34348 ns/op	    4530 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3208	     35334 ns/op	    4535 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3506	     36669 ns/op	    4530 B/op	      78 allocs/op
+BenchmarkDeliver/pathological-response-overflow-64         	    3225	     36466 ns/op	    4529 B/op	      78 allocs/op
+BenchmarkClosedDeliver-64                                  	  831916	       122.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	 1359985	       110.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	 1354046	       110.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	  859640	       122.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	  856849	       122.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	  843456	       122.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	  875492	       123.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	  857812	       122.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	  892616	       123.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkClosedDeliver-64                                  	 1000000	       119.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/gotthboard/gotth-webhooks/pkg/webhooks	9.015s
+head_after=120db639e874419a71af4e10447b8e9ea1f73913
+status_after_begin
+status_after_end
+finished_utc=2026-09-06T19:24:41Z

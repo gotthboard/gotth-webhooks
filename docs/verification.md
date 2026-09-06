@@ -2,19 +2,24 @@
 
 ## Dispatcher lifecycle repair candidate
 
-Source `20a122362ede5c6c934d39e809ff52747887bd1f` adds the public
-`Dispatcher.Close` and `ErrClosed` contracts without public dependency
-injection or request tracking. Exact Go 1.26.6 development-host evidence passed
-full, verify, race coverage, full/focused race x50, all three existing fuzz
-targets, benchmark, external-consumer, and second-clean-clone gates. Repository
-coverage is 97.4%; `Close` and every changed lifecycle decision are 100.0%
-covered. The closed path observed 0 B/op and 0 allocations/op.
+Independent review 1 rejected evidence HEAD `065ba1d9` because cleanup could
+precede an admitted delivery's first or retried `RoundTrip`. Repair source
+`120db639e874419a71af4e10447b8e9ea1f73913` now serializes admission with the
+closed transition, waits for all admitted deliveries, and then performs the
+sole owned-transport cleanup. Dispatcher value copies share this lifecycle.
+The review and expected-red proofs are retained with the repair evidence.
+
+Exact Go 1.26.6 development-host evidence passed full, verify, race coverage,
+full/focused race x50, all three existing fuzz targets, allocation, benchmark,
+external-consumer, and second-clean-clone gates. Repository coverage is 97.5%;
+`Close` and every changed lifecycle decision are 100.0% covered. The closed
+path observed 0 B/op and 0 allocations/op.
 
 Raw logs, runner, coverage profile, identities, hashes, limitations, and the
 exact test oracle are retained under
-`workflow/features/dispatcher-lifecycle-repair/evidence`. The feature remains
-`in_progress` pending independent review and orchestrator admission. No remote
-mutation or release action occurred.
+`workflow/features/dispatcher-lifecycle-repair/evidence/repair-1`. The feature
+remains `in_progress` pending independent rereview and orchestrator admission.
+No remote mutation or release action occurred.
 
 ## Post-admission receipt-time repair
 

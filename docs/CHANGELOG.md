@@ -1264,6 +1264,45 @@ Risks / non-goals:
 - No per-request tracker, cancellation registry, consumer policy, public
   transport injection, PR, merge, push, tag, release, or remote mutation.
 
+### 2026-09-06 14:27:57 CDT - Record lifecycle drain repair evidence
+
+Source commit: `120db639e874419a71af4e10447b8e9ea1f73913`
+
+Evidence commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.toml`
+- `workflow.events.jsonl`
+- `workflow/COVERAGE.md`
+- `workflow/features/dispatcher-lifecycle-repair/README.md`
+- `workflow/features/dispatcher-lifecycle-repair/evidence/repair-1/**`
+
+Explanation:
+
+Retain independent review 1, the expected-red proof, exact source bundle
+identity, development runner, raw gate output, coverage, performance results,
+hashes, external-consumer compile, and second-clean-clone proof for the
+drain-before-cleanup repair.
+
+Verification:
+
+- full, verify, fresh race coverage, full/focused race x50: PASS
+- all three five-second fuzz campaigns: PASS
+- closed-path allocation assertions x50: PASS
+- benchmark, external-consumer compile, second clean clone: PASS
+- repository coverage 97.5%; all changed lifecycle statements covered
+
+Risks / non-goals:
+
+- This evidence does not self-admit the repair; independent rereview remains
+  orchestrator-owned.
+- No Board or notify edit, PR, merge, push, tag, release, deployment, live
+  request, or remote mutation occurred.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

@@ -1,0 +1,15 @@
+gate=fuzz-content-type
+started_utc=2026-09-06T19:24:25Z
+head_before=120db639e874419a71af4e10447b8e9ea1f73913
+status_before_begin
+status_before_end
+fuzz: elapsed: 0s, gathering baseline coverage: 0/282 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 282/282 completed, now fuzzing with 64 workers
+fuzz: elapsed: 3s, execs: 551796 (183925/sec), new interesting: 7 (total: 289)
+fuzz: elapsed: 6s, execs: 994095 (167420/sec), new interesting: 13 (total: 295)
+PASS
+ok  	github.com/gotthboard/gotth-webhooks/pkg/webhooks	5.692s
+head_after=120db639e874419a71af4e10447b8e9ea1f73913
+status_after_begin
+status_after_end
+finished_utc=2026-09-06T19:24:32Z

@@ -10,7 +10,7 @@
 | WHK-009/012 | receipt model | detached record, exact UTC microsecond timestamps, and sensitive fingerprint | ordering, duration, UTC/microsecond alignment across success, transport failure, and recorder failure, failure stop, unknown outcomes, fingerprint stability | base admitted; repair review pending |
 | WHK-011 | concurrency | immutable delivery configuration, concurrent Recorder obligation | overlapping recorder calls, concurrent deliveries, repeated race | admitted-covered |
 | WHK-013 | distribution | `LICENSE` and policy docs | license inventory | admitted-covered |
-| WHK-014 | lifecycle | atomic close admission and one owned-transport cleanup | closed precedence/no-side-effects, admitted-call completion, concurrent/repeated close, closable/non-closable transport branches, focused race x50 | candidate-covered; review pending |
+| WHK-014 | lifecycle | shared close admission, admitted-delivery drain, then one owned-transport cleanup | closed precedence/no-side-effects, pauses before first RoundTrip and between retries, admitted-call completion, value-copy state, concurrent/repeated close, closable/non-closable transport branches, focused race x50, allocation proof | repaired-candidate-covered; rereview pending |
 
 These statuses cover the admitted standalone technical implementation except
 for the explicitly marked post-admission receipt-time repair candidate. Two
@@ -24,8 +24,8 @@ the fixture repair, and every address-policy production function remains at
 recorded in the feature evidence. The receipt-time repair has fresh 97.3%
 statement coverage at exact source `c92f9aab1537bd49d035b7019ef7e00af44d5679`;
 its canonicalization helper is 100.0% covered and two independent reviews
-admitted it at `2b10dc0`. The dispatcher lifecycle candidate has fresh 97.4%
+admitted it at `2b10dc0`. The dispatcher lifecycle repair has fresh 97.5%
 repository coverage at exact source
-`20a122362ede5c6c934d39e809ff52747887bd1f`; `Close` and every changed
-lifecycle decision are 100.0% covered. Its independent review remains
-orchestrator-owned.
+`120db639e874419a71af4e10447b8e9ea1f73913`; `Close` and every changed
+lifecycle decision are 100.0% covered. The remaining 2.5% is pre-existing.
+Independent rereview remains orchestrator-owned.

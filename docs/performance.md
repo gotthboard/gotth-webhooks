@@ -41,14 +41,14 @@ semantics and provide matched evidence before claiming an overall speedup.
 | boundary 1 MiB payload | 4.202430 ms | 4.535586 ms | 4.535586 ms | 237.96 ops/s | 1,060,141..1,061,102 | 76..77 |
 | pathological 64 KiB+1 response | 36.313 us | 37.059 us | 37.059 us | 27,538.35 ops/s | 4,523..4,542 | 78 |
 
-The dispatcher lifecycle candidate adds a separate closed-admission benchmark
-at exact source `20a122362ede5c6c934d39e809ff52747887bd1f`. Ten 100 ms samples
-observed 74.66..87.41 ns/op, 0 B/op, and 0 allocations/op. Its raw log is
-retained at
-`workflow/features/dispatcher-lifecycle-repair/evidence/raw/benchmark.log`
-with SHA-256
-`4b63f563cc21c170d4506ea8f83544bc5cffe883b8f461e91f43bb5836a6a7d7`.
-This proves the closed path does not validate or copy a message; it is not a
+The repaired dispatcher lifecycle has a separate closed-admission benchmark at
+exact source `120db639e874419a71af4e10447b8e9ea1f73913`. Ten 100 ms samples
+observed 110.3..123.7 ns/op, 0 B/op, and 0 allocations/op. Its raw log is
+retained under `workflow/features/dispatcher-lifecycle-repair/evidence/repair-1`
+as `raw/benchmark.log`, with SHA-256
+`4f8afb77662564d79eda1ffc92b3f0604dea5f24d29538d56308551d562f68bd`.
+The added mutex is a deliberate admission/cleanup synchronization cost. This
+proves the closed path does not validate or copy a message; it is not a
 production scheduler or transport-latency claim.
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection

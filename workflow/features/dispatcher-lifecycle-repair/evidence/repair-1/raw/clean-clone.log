@@ -1,0 +1,23 @@
+Cloning into '/tmp/gotth-webhooks-lifecycle-repair-second-120db63'...
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+HEAD is now at 120db63 Drain deliveries before transport cleanup
+head_before=120db639e874419a71af4e10447b8e9ea1f73913
+status_before_begin
+status_before_end
+ok  	github.com/gotthboard/gotth-webhooks/pkg/webhooks	0.114s
+head_after=120db639e874419a71af4e10447b8e9ea1f73913
+status_after_begin
+status_after_end

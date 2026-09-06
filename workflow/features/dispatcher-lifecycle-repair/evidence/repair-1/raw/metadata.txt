@@ -1,0 +1,5 @@
+source_commit=120db639e874419a71af4e10447b8e9ea1f73913
+source_tree=29884ceafedc180fc86606bcd84bb530e216cc68
+go_version=go version go1.26.6-X:nodwarf5 linux/amd64
+kernel=Linux 7.1.5-arch1-2 x86_64 GNU/Linux
+bundle_sha256=fc3b7d5c634e71f18e056a35a7f6c9fcec1543dfbfc4bcacb37a8966cd72a06a

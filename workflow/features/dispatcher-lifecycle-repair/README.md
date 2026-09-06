@@ -1,7 +1,8 @@
 # Dispatcher lifecycle repair
 
-Status: `in_progress`; independent review 1 rejected the first candidate and
-the drain-before-cleanup repair is active.
+Status: `in_progress`; independent review 1 rejected the first candidate. The
+drain-before-cleanup repair and exact-source evidence are complete; independent
+rereview and admission remain orchestrator-owned.
 
 Add the smallest public lifecycle boundary needed to retire one dispatcher:
 reject new delivery admission, wait for admitted calls to finish, and only then
@@ -11,6 +12,9 @@ remote publication.
 
 Evidence belongs under `evidence/`; independent reviews belong under `review/`.
 
-Source: `20a122362ede5c6c934d39e809ff52747887bd1f`
+Source: `120db639e874419a71af4e10447b8e9ea1f73913`
 
-Verification: [evidence/verification.md](evidence/verification.md)
+Initial verification: [evidence/verification.md](evidence/verification.md)
+
+Review repair verification:
+[evidence/repair-1/verification.md](evidence/repair-1/verification.md)

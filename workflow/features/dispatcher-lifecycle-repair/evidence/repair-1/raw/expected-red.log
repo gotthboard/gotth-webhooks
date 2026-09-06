@@ -1,0 +1,12 @@
+production_head=065ba1d9f47219aab7e3664c275c8f9ba9b60838
+review_head=65f8efa
+go_version=go version go1.26.6-X:nodwarf5 linux/amd64
+--- FAIL: TestDispatcherCopiesShareLifecycle (0.00s)
+    dispatcher_test.go:227: copied dispatcher result={DeliveryID:delivery-1 Attempts:1 LastAttempt:1 Delivered:true StatusCode:204 Outcome:delivered LastReceipt:{DeliveryID:delivery-1 DeliveryFingerprint:[23 165 6 197 154 208 26 229 105 226 107 173 31 150 69 79 69 173 171 15 28 97 130 129 201 210 120 1 163 149 249 47] Attempt:1 RequestTimestamp:1700000000 StartedAt:2023-11-14 22:13:20 +0000 UTC FinishedAt:2023-11-14 22:13:20 +0000 UTC Outcome:delivered StatusCode:204 ResponseBytes:0 ErrorCode:}} error=<nil>, want zero result and ErrClosed
+--- FAIL: TestCloseWaitsForAdmittedDeliveryBetweenRetries (0.00s)
+    dispatcher_test.go:204: transport cleanup before admitted retry completed
+--- FAIL: TestCloseWaitsForAdmittedDeliveryBeforeFirstRoundTrip (0.00s)
+    dispatcher_test.go:167: transport cleanup before admitted delivery reached RoundTrip
+FAIL
+FAIL	github.com/gotthboard/gotth-webhooks/pkg/webhooks	0.006s
+FAIL
