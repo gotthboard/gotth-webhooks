@@ -34,7 +34,11 @@ IPv6: ::/128, ::1/128, ::ffff:0:0/96, 64:ff9b::/96,
 ```
 
 Nested registry rows are covered by the registry's own broader `192.0.0.0/24`
-and `2001::/23` rows. Tests duplicate the compact snapshot, require exact table
-equality, and reject both endpoints of every prefix. There is no live registry
-fetch at runtime. Maintainers must compare both registries and refresh this
-snapshot before release and during every security maintenance cycle.
+and `2001::/23` rows. The exact XML snapshots are retained under
+`pkg/webhooks/testdata`. Tests verify their SHA-256 hashes and registry
+metadata, parse every registry address prefix, and independently require each
+allocation to be covered by the compact production deny table. They also require
+exact table equality with the documented compact form and reject both endpoints
+of every production prefix. There is no live registry fetch at test or runtime.
+Maintainers must compare both registries and refresh these fixtures before
+release and during every security maintenance cycle.

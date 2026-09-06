@@ -2,8 +2,12 @@ package webhooks
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/xml"
 	"errors"
 	"net/netip"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -99,6 +103,97 @@ func TestIANASpecialPurposeRegistrySnapshot(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestIANARegistryFixturesCoveredByProductionDenyTable(t *testing.T) {
+	t.Parallel()
+
+	fixtures := []struct {
+		name        string
+		path        string
+		hash        string
+		registryID  string
+		ipv4        bool
+		prefixCount int
+	}{
+		{
+			name:        "IPv4",
+			path:        "testdata/iana-ipv4-special-registry.xml",
+			hash:        "cf24e11f41b7d42c68debe2d18b97cac815084ec413ebb3b244f704028a16f20",
+			registryID:  "iana-ipv4-special-registry",
+			ipv4:        true,
+			prefixCount: 26,
+		},
+		{
+			name:        "IPv6",
+			path:        "testdata/iana-ipv6-special-registry.xml",
+			hash:        "c17f4380ba84fb2160dae82ebfd8bd155a5853cfab624ed3a9fd251638a8be02",
+			registryID:  "iana-ipv6-special-registry",
+			prefixCount: 25,
+		},
+	}
+	for _, fixture := range fixtures {
+		fixture := fixture
+		t.Run(fixture.name, func(t *testing.T) {
+			t.Parallel()
+
+			contents, err := os.ReadFile(fixture.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sum := sha256.Sum256(contents)
+			if got := hex.EncodeToString(sum[:]); got != fixture.hash {
+				t.Fatalf("fixture SHA-256=%s want=%s", got, fixture.hash)
+			}
+
+			var registry struct {
+				ID      string `xml:"id,attr"`
+				Updated string `xml:"updated"`
+				Records []struct {
+					Address string `xml:"address"`
+				} `xml:"registry>record"`
+			}
+			if err := xml.Unmarshal(contents, &registry); err != nil {
+				t.Fatal(err)
+			}
+			if registry.ID != fixture.registryID || registry.Updated != "2025-10-09" {
+				t.Fatalf("registry provenance=(%q, %q), want=(%q, %q)", registry.ID, registry.Updated, fixture.registryID, "2025-10-09")
+			}
+
+			prefixCount := 0
+			for _, record := range registry.Records {
+				for _, text := range strings.Split(record.Address, ",") {
+					prefix, err := netip.ParsePrefix(strings.TrimSpace(text))
+					if err != nil {
+						t.Fatalf("parse registry address %q: %v", record.Address, err)
+					}
+					if prefix.Addr().Is4() != fixture.ipv4 {
+						t.Fatalf("registry address %s has wrong family", prefix)
+					}
+					prefixCount++
+					if !denyTableCoversPrefix(prefix) {
+						t.Errorf("registry allocation %s is not covered by the production deny table", prefix)
+					}
+				}
+			}
+			if prefixCount != fixture.prefixCount {
+				t.Fatalf("parsed %d registry prefixes, want %d", prefixCount, fixture.prefixCount)
+			}
+		})
+	}
+}
+
+func denyTableCoversPrefix(allocation netip.Prefix) bool {
+	allocation = allocation.Masked()
+	for _, denied := range ianaSpecialPurposePrefixes {
+		denied = denied.Masked()
+		if denied.Addr().BitLen() == allocation.Addr().BitLen() &&
+			denied.Bits() <= allocation.Bits() &&
+			denied.Contains(allocation.Addr()) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestAllocatedGlobalIPv6Boundary(t *testing.T) {
