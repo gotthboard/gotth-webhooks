@@ -32,7 +32,7 @@ risk = "critical"
 assurance = "traceable-tests"
 created_at = "2026-09-03T15:37:00Z"
 activated_at = "2026-09-03T15:37:00Z"
-updated_at = "2026-09-06T03:20:00Z"
+updated_at = "2026-09-06T03:46:37Z"
 completed_at = ""
 folder = "workflow/features/outbound-v1-admission"
 source_path = "pkg/webhooks"
@@ -42,7 +42,7 @@ scope = ["Opaque outbound HTTPS webhook requests", "HMAC-SHA-256 request signing
 non_goals = ["Product events or subscriptions", "Inbound webhooks", "Exactly-once claims", "Private endpoints or custom transports", "Durable storage adapter"]
 affected_files = ["**"]
 invariants = ["Consumers authorize and minimize payloads", "No request processes a redirect or uses an ambient proxy", "A surviving process records every actual attempt before another send", "Secrets, raw endpoints, payloads, and raw errors never enter receipts; delivery fingerprints are sensitive", "No live service or remote repository is mutated"]
-acceptance = ["Requirements trace to source, tests, and evidence", "Format, vet, race, repeated race, coverage, fuzz, boundary, TLS integration, external compile, performance, and cold review gates pass"]
+acceptance = ["Standalone technical requirements trace to source, tests, and evidence", "Format, vet, race, repeated race, coverage, fuzz, boundary, TLS integration, external compile, performance, and cold review gates pass", "Release and compatibility remain gated by a real-consumer contract, behavioral validation, and exact dependency pin per docs/RELEASING.md"]
 
 [feature.outbound-v1-admission.rollback]
 strategy = "revert_local_feature_commits"

@@ -1,50 +1,66 @@
 # Verification status
 
-A fresh severe audit rejected prior evidence head
-`ef713a777a4949d1f6726f72cabe7a009d667883`. Go 1.26.6 HTTP/2 can replay a
-reconstructible POST inside one `RoundTrip`, producing a wire send without a
-distinct library receipt. The same audit found zero-progress callbacks missing
-from `io.ReadFull` cost accounting and a false timer wall-time upper bound.
+Independent review of evidence head
+`381b680e4b6e0945746d5d2db87b3a60bc797924` found that the copied compact
+IANA prefix list was not an independent completeness oracle and that status
+text incorrectly coupled standalone technical admission to consumer adoption.
 
-Source commit `bf64d724bd68bcb95f7180e1b79c16351e1d881c` pins the owned
-transport to HTTP/1, proves negotiation against an HTTP/2-capable TLS server,
-and corrects both comments. This is a repair and verification claim only. The
-feature remains `in_progress`; orchestrator final admission and a real consumer
-contract/pin remain open.
+Source commit `7de792774d2a9229f577d8d46dfb803b1b1c9bfe` retains the exact
+already-hashed IANA IPv4 and IPv6 XML snapshots as test fixtures. The new test
+verifies each fixture hash and registry metadata, parses all 26 IPv4 and 25
+IPv6 allocations, and requires every allocation to be covered by the unchanged
+compact production deny table. No test or runtime fetch occurs.
 
-Exact source gates used Go 1.26.6-X:nodwarf5 on development Linux amd64 in an
-isolated clean detached clone:
+The feature remains `in_progress`; final standalone technical admission is
+orchestrator-owned and is not claimed here. A real-consumer contract,
+behavioral validation, and exact dependency pin remain separate hard
+release/compatibility gates under `docs/RELEASING.md`.
 
-- `make verify` - PASS; format, vet, race, 97.3% statements.
-- Uncached race coverage - PASS, 97.3%. `newHTTPTransport` and every other
-  touched production function are 100%; no changed-surface statement gap.
+Exact source gates used Go 1.26.6-X:nodwarf5 on development Linux amd64 in the
+isolated clean detached clone
+`/tmp/gotth-webhooks-7de7927-repair.0tljnO/repo`:
+
+- Uncached full repository test and `make verify` - PASS; format, vet, race,
+  and 97.3% statements.
+- Fresh uncached race coverage - PASS, 97.3%. Production code is unchanged;
+  `isPublicAddress` and every other address-policy production function remain
+  100% covered.
 - Full repository race x50 and consequential focused race x50 - PASS.
 - Endpoint/signing/content-type fuzzing for five seconds each - PASS,
-  1,120,515 / 946,687 / 1,168,851 executions.
+  1,022,075 / 964,273 / 1,160,609 executions.
 - Independent OpenSSL HMAC vector - PASS, exact expected digest
   `5afc952ae607736b86e3570dddc25991115f80afdb46c49832a30a5671028f7f`.
-- Synthetic external compile, benchmark observation, six authority hashes, and
-  post-gate clean tracked status - PASS. The compile is syntax evidence only;
-  the benchmark makes no speedup or production-latency claim.
+- Synthetic external compile and benchmark observation - PASS. The compile is
+  syntax evidence only; the benchmark makes no speedup or production-latency
+  claim.
+- Every gate log records Go version, before/after HEAD
+  `7de792774d2a9229f577d8d46dfb803b1b1c9bfe`, empty before/after tracked
+  status, and exit 0. Final clone HEAD/status matched.
 
-Retained artifacts and SHA-256 values:
+Retained development-host artifacts and SHA-256 values:
 
-- verify `fbeaaaff513f31d76a852723fdeb791d1cae4b6eee7a4f008f1d94ca9b0262f2`;
-- coverage/profile/function `698169dd8f21f1a9aa9b8f9151ae79622b71b2209c5f888ac979c120be0a6087` /
+- full / verify / race coverage
+  `a63dcb7f681bca8e961f2348fa7afc7c65d6d7652840ad31152b2a0a788a4fa5` /
+  `dbb26bb8d1f8f168b00f3c4d8f2d287895b89f7693fb5215ca5e3cb146d1c6e9` /
+  `98652860153e3e4864cabee8cf0102693ce6b83da0189db0d61ee08ff4582e64`;
+- coverage profile / function report
   `cfb599f2e94dc506076cbca45243ace5b476d4fbf393833e365346bf4b937dcc` /
   `7d66e803dbdbe2f1748fd7951a64c268fff3109d8cf8e125dedfcace21957830`;
-- full/focused race50 `b040439bc51fa63318081001766cc6ae9883e47ae2706e65b217372ce6213cbd` /
-  `871f9e664d1fb90d18eb92fdc61b97fd7310825f436e1055921e381a832d5a60`;
-- fuzz endpoint/signing/content type `38223a9490e99b8c4a2d355fc076c972389e366056dfeb0033741e2531f19d2b` /
-  `a1532fe2488478c0997318ced54d8f6fd0ed7b12a984b69c425745517ddc633e` /
-  `3ded5fe730aa5f315966ab30db9084a78536e38776b0057194d796a5ed7bba14`;
-- HMAC `952a876c8b7a817fa39f94cf08a16aecdc67173cb7c2960d9c5a69e489c58f1d`;
-- synthetic compile `e327314e3c80bd9af6dc21df651c8c7fbc7cb901975d051a1603e039dc91bb73`;
-- benchmark `8d67754d4ccd68ab227d770656a793d5799eef3dafce2200f5f1a00d0632eaeb`;
-- Go contracts `ff1e886333ff13e9c5fd491732782e8c2346d455a6fbd3414a01121cba0146e3`;
-- authority/provenance `4c4d82371b2c027cfc90c47a287106fe3251fbdb4a042927154b77010ed76c8a` /
-  `2e3caf69710a01a744163aea1b9c987286ca665073497bbc622e6f8ebb0d2ff6`.
+- full / focused race50
+  `b4f57dc60a7704380d7340df2407fd00c91684e17f188792b17de10aa1497d2b` /
+  `beb75b06a0426854288e55a919a50cd7acf3352e0b7178b7f974b6101458fa07`;
+- fuzz endpoint / signing / content type
+  `5f34127c695103fbc63b20ed91a010f2ba8bf1b1f061da668239cf56051ad587` /
+  `ff050498584086f10d0be59311b99caa51e42efd9071b99da0b0759516040dd0` /
+  `553dc4aaa05e05ddbdf3d0ea9d51d0134f183efd897d2f73fed394317975d0ea`;
+- HMAC / synthetic compile / benchmark
+  `47edb1a11d52294cb50f275d3239328f1c523ab69aabd7ef05ace704b2c81176` /
+  `96f60988ac01f2d2add5a0c8ef515f859f3a82aa0f9b80aeea6d013b5fd3b7bc` /
+  `73f7d021f17edfcc39c2f6dbe22e42faed12c346fd929ae8f6fa2114ddbe450a`.
 
-Artifacts use `/tmp/gotth-webhooks-bf64d72.<name>`. No push, PR, tag, release,
-deployment, live request, remote mutation, or GOTTH Board mutation occurred.
-Final admission is deliberately not claimed.
+The source bundle is SHA-256
+`1e092901aac0dde3353afb5039b0e90b66df151a7de73fee7b0d60659cbb08e7`;
+the independent review report is
+`0fed933a862d1310ce09612f2cd7919bbc9848a0bf9f86855e8c950f2148c93c`.
+No push, PR, tag, release, deployment, live request, remote repository
+mutation, or GOTTH Board mutation occurred.

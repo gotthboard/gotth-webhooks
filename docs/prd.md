@@ -11,9 +11,12 @@ semantics.
 The current GOTTH Board product PRD places product webhooks in v4 and does not
 define events, recipients, subscriptions, payload schemas, or privacy rules.
 Those decisions therefore remain consumer-owned. This candidate explores
-consumer-neutral outbound mechanics over opaque caller-provided bytes, but its
-public API is not admissible until one real consumer requirement validates the
-surface. A synthetic compile fixture is not that requirement.
+consumer-neutral outbound mechanics over opaque caller-provided bytes.
+Standalone technical implementation admission depends on this repository's
+technical gates and independent review. It does not establish a release or
+compatibility contract. Those later decisions require a real consumer
+requirement, behavioral validation, and exact dependency pin. A synthetic
+compile fixture is not that evidence.
 
 ## Requirements
 
@@ -71,11 +74,15 @@ surface. A synthetic compile fixture is not that requirement.
 
 ## Acceptance
 
-Local implementation requirements trace to design, source, tests, and evidence.
-Admission additionally requires one real consumer contract and pin; that
-product input is currently blocked. Verification
-includes format, vet, race, repeated race, statement coverage, fuzzing,
-boundary and negative tests, a real loopback TLS transport test using only
-test-internal dependencies, an external-consumer compile, performance
-admission, and cold review. No push, tag, release, deployment, or live service
-mutation is part of this feature.
+Standalone technical admission requires the local implementation requirements
+to trace to design, source, tests, and evidence, followed by independent
+orchestrator review. Verification includes format, vet, race, repeated race,
+statement coverage, fuzzing, boundary and negative tests, a real loopback TLS
+transport test using only test-internal dependencies, an external-consumer
+compile, performance admission, and cold review.
+
+Release and compatibility admission are separate. Per
+`docs/RELEASING.md`, they additionally require one real consumer contract,
+behavioral validation against an exact dependency pin, and all release gates.
+That product input remains open. No push, tag, release, deployment, or live
+service mutation is part of this feature.

@@ -3,10 +3,12 @@
 Consumer-neutral mechanics for bounded, signed outbound webhooks.
 
 > **Distribution:** Forgejo remains canonical development. GitHub is the public
-> clone and future Go/release endpoint after admission. This branch is
-> an unreleased review candidate; no tag or compatibility promise exists yet.
-> Admission is blocked until one real product consumer supplies requirements
-> and validates the public surface. See
+> clone and future Go/release endpoint after release admission. This branch is
+> an unreleased technical review candidate; no tag or compatibility promise
+> exists yet. Standalone technical admission depends on repository gates and
+> independent orchestrator review. Release and compatibility remain blocked
+> until one real product consumer supplies a contract, validates behavior
+> against an exact dependency pin, and completes the release gates. See
 > [the distribution contract](docs/distribution.md).
 
 ## Boundary
@@ -39,15 +41,17 @@ unrecorded unknown attempt; recovery must not blindly resend it.
 
 ## Installation and compatibility
 
-There is no release to install yet. Do not pin this repository until a real
-consumer contract, consumer verification, admission, and an exact tag are
-complete. The local external-module fixture proves compilation only; it is not
-a real consumer or compatibility oracle.
+There is no release to install yet. Standalone technical admission does not
+create a compatibility promise. Before release, one real consumer must supply
+a contract and complete behavioral verification against an exact candidate
+dependency pin as required by [the release policy](docs/RELEASING.md). The
+local external-module fixture proves compilation only; it is not a real
+consumer or compatibility oracle.
 
 The current candidate module is `github.com/gotthboard/gotth-webhooks`, requires
 Go 1.26.6, uses only the Go standard library, and supports HTTPS port 443. The
-first compatibility contract remains unstable until a consumer pin and release
-tag exist.
+first compatibility contract remains unstable until the real-consumer gate and
+release tag are complete.
 
 ## API
 

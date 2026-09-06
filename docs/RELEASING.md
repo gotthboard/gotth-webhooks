@@ -8,9 +8,11 @@ If this repository contains a Go module, release tags use the Go-compatible
 tags are immutable even when they predate this convention.
 
 The license gate is closed with the maintainer-selected MIT license. No release
-may be tagged until implementation admission, independent review, real-consumer
-verification, and all required exact-ref verification are complete. A local
-green branch is not a release candidate by assertion.
+may be tagged until standalone implementation admission, independent review,
+a real-consumer contract and behavioral verification against an exact
+dependency pin, and all required exact-ref verification are complete. A local
+green branch is not a release candidate by assertion. Standalone technical
+admission alone creates no release or compatibility promise.
 
 For an admitted release:
 

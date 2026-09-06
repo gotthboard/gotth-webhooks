@@ -928,6 +928,81 @@ Risks / non-goals:
 - No push, PR, tag, release, deployment, live request, remote mutation, or
   GOTTH Board mutation is performed.
 
+### 2026-09-05 22:38:50 CDT - Test IANA deny table against pinned registries
+
+Commit: `7de792774d2a9229f577d8d46dfb803b1b1c9bfe`
+
+Affected files:
+
+- `docs/address-policy.md`
+- `pkg/webhooks/testdata/iana-ipv4-special-registry.xml`
+- `pkg/webhooks/testdata/iana-ipv6-special-registry.xml`
+- `pkg/webhooks/values_test.go`
+
+Explanation:
+
+Retain the exact already-hashed 2025-10-09 IANA IPv4 and IPv6 registry XML
+snapshots as test fixtures. Verify fixture hashes and registry metadata, parse
+all registry prefixes, and require every allocation to be covered by the
+unchanged compact production deny table. This supplies an independent
+completeness oracle without adding a test-time or runtime fetch.
+
+Verification:
+
+- focused local fixture/hash/registry coverage tests with `GOMAXPROCS=2` and
+  `-p=1`
+- exact fixture byte comparison and SHA-256 checks
+- exact-source development-host gates recorded in the following evidence entry
+
+Risks / non-goals:
+
+- Production code and the compact runtime prefix table are unchanged.
+- The snapshots remain pinned and require deliberate maintenance before a
+  release or security-policy refresh.
+
+### 2026-09-05 22:50:00 CDT - Record registry and admission-gate repair
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `docs/distribution.md`
+- `docs/performance.md`
+- `docs/prd.md`
+- `docs/RELEASING.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/README.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record the independent-review findings and exact Go 1.26.6 development-host
+verification for source `7de792774d2a9229f577d8d46dfb803b1b1c9bfe`.
+Separate standalone technical implementation admission from real-consumer
+adoption and release. Preserve the real-consumer contract, behavioral
+validation, and exact dependency pin as hard release/compatibility gates under
+`docs/RELEASING.md`.
+
+Verification:
+
+- uncached full, format, vet, race, 97.3% coverage, full/focused race50, three
+  fuzz targets, OpenSSL HMAC, external syntax, benchmark, and clean-clone gates
+- every retained gate log records exact before/after HEAD and status
+
+Risks / non-goals:
+
+- Workflow state remains `in_progress`; final technical admission is
+  orchestrator-owned.
+- No release or compatibility promise is made. No push, merge, PR, tag,
+  release, deployment, live request, or GOTTH Board mutation is performed.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

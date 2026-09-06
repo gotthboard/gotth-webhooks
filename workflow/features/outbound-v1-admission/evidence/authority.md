@@ -18,9 +18,13 @@ Design authorities read before implementation:
   read-only 2026-09-03: SHA-256
   `c17f4380ba84fb2160dae82ebfd8bd155a5853cfab624ed3a9fd251638a8be02`.
 
-Raw RFC and IANA registry snapshots are retained as task scratch under
-`/tmp/gotth-webhooks-authority`; the runtime boundary records consequential
-conclusions.
+Raw RFC snapshots remain task scratch under `/tmp/gotth-webhooks-authority`.
+The exact IANA registry snapshots are retained as repository test fixtures at
+`pkg/webhooks/testdata/iana-ipv4-special-registry.xml` and
+`pkg/webhooks/testdata/iana-ipv6-special-registry.xml`. Their test-enforced
+hashes match the values above; test parsing also checks registry IDs, the
+2025-10-09 update date, all 26 IPv4 prefixes, all 25 IPv6 prefixes, and
+coverage of each allocation by the compact production deny table.
 
 The internal Judge used context-broker 0.1.0 (broker SHA-256
 `8826786c571a5b906b23bda74e91dcbcf055a592b315e3512564b7c6da9924bb`)
@@ -71,3 +75,10 @@ not replay this unmarked POST after request bytes are written. `io.ReadFull`
 can repeat zero-progress callbacks, and a timer becomes eligible after at least
 its delay rather than guaranteeing a return-time upper bound. These source
 contracts drive the current narrow repair and do not constitute admission.
+
+The registry-completeness repair used the exact already-hashed snapshots above;
+it did not fetch new authority data. Independent report
+`/tmp/gotth-webhooks-independent-judge-1.md`, SHA-256
+`0fed933a862d1310ce09612f2cd7919bbc9848a0bf9f86855e8c950f2148c93c`,
+identified the missing independent oracle and the admission-gate conflation at
+reviewed clean head `381b680e4b6e0945746d5d2db87b3a60bc797924`.

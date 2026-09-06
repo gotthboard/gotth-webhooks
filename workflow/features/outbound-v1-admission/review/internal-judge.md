@@ -321,3 +321,33 @@ format, vet, race, coverage, race50, focused race50, fuzz, HMAC, external syntax
 benchmark, authority, and clean-clone gates pass. Changed executable coverage
 is 100%. This audit does not admit the feature; the real consumer contract/pin
 and orchestrator final admission remain open.
+
+## Independent cold pass 14 - NARROW AND RETRY
+
+Reviewed evidence head: `381b680e4b6e0945746d5d2db87b3a60bc797924`
+
+The independent Judge found one high-severity SSRF evidence flaw: the test
+copied the same compact IANA prefix table as production, so an allocation
+omitted from both transcriptions remained untested. Registry hashes alone did
+not connect XML rows to the deny table. The Judge also found that status text
+incorrectly coupled standalone technical admission to a real-consumer release
+pin. Report: `/tmp/gotth-webhooks-independent-judge-1.md`, SHA-256
+`0fed933a862d1310ce09612f2cd7919bbc9848a0bf9f86855e8c950f2148c93c`.
+
+## Repair pass 20 - FINDINGS ADDRESSED / FINAL TECHNICAL ADMISSION OPEN
+
+Reviewed source: `7de792774d2a9229f577d8d46dfb803b1b1c9bfe`
+
+The exact already-hashed IPv4/IPv6 XML snapshots are now repository test
+fixtures. A test verifies hashes and registry metadata, parses every allocation
+prefix, and proves each is covered by the unchanged compact production deny
+table. PRD, README, workflow feature, coverage, and evidence text now separate
+standalone technical admission from consumer adoption and release.
+`docs/RELEASING.md` remains authoritative: a real-consumer contract,
+behavioral validation, and exact dependency pin are hard release/compatibility
+gates.
+
+Exact Go 1.26.6 development-host full, verify, race coverage, race50, focused
+race50, fuzz, OpenSSL HMAC, external compile, benchmark, and clean-clone gates
+pass. This is a worker repair verdict, not final admission. The orchestrator
+owns that decision, and workflow state remains `in_progress`.

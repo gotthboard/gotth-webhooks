@@ -13,15 +13,19 @@ endpoints.
 
 ## Maturity and compatibility
 
-Current status: implemented local admission candidate; no release, tag, public
-compatibility promise, or consumer pin. Local green evidence does not itself
-admit the implementation.
+Current status: implemented standalone technical admission candidate; no final
+orchestrator admission, release, tag, public compatibility promise, or
+real-consumer pin. Local green evidence does not itself admit the
+implementation.
 
 ## Installation
 
 There is no release to install. The candidate module path is
-`github.com/gotthboard/gotth-webhooks`, but consumers must not pin it until
-independent review, a real consumer verification, and an exact release tag.
+`github.com/gotthboard/gotth-webhooks`. A designated real-consumer adoption
+candidate must use an exact source dependency pin for the required pre-release
+behavioral verification; that pin is evidence, not a compatibility promise.
+Other consumers must not treat the module as installable until all release
+gates pass and an exact release tag exists.
 
 The repository pins Go 1.26.6 where a Go module exists. Supported protocol,
 runtime, database, and tool versions remain the ones stated in the README and
