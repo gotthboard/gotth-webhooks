@@ -3,7 +3,7 @@
 | Requirement | Design/spec | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- |
 | WHK-001 | PRD/boundary | opaque message validation | public API, validation, fuzz | candidate-covered |
-| WHK-002/003 | architecture/network | URL/query parser, pinned IANA policy, safe dialer, transport | URL/query and registry boundaries, mixed answer, transient DNS lookup, rebinding, TLS integration | candidate-covered |
+| WHK-002/003 | architecture/network | URL/query parser, pinned IANA policy, safe dialer, HTTP/1-only transport | URL/query and registry boundaries, mixed answer, transient DNS lookup, rebinding, TLS integration, HTTP/2-capable server protocol pin | candidate-covered |
 | WHK-004/010 | spec/wire | signed request, canonical content type, and key ID | OpenSSL vector, every-field mutation, control rejection, spaces/UTF-8 canonical signature, rotation-independent fingerprint | candidate-covered |
 | WHK-005/006 | spec/public API | random ID, limits, content-type controls, semantics fingerprint | uniqueness, input and canonical-output length boundaries, all C0/DEL positions, no-side-effect Deliver rejection, fuzz | candidate-covered |
 | WHK-007/008 | failure model | typed retry allowlist, causal timeout, status, bounded response | actual transport malformed/header-limit failures at expired deadline, causal deadline, caller cancellation precedence, TLS, capped delta/date, error/cancel/overflow tests | candidate-covered |
@@ -15,7 +15,7 @@ These statuses cover only the local implementation candidate. Admission is
 blocked because no real consumer requirement or pin validates the public API;
 the synthetic compile fixture is not a compatibility oracle. Revised coverage
 is 97.3% at exact source object
-`a3fb596b018069e65562c6a5f434236b9e7b37b4`. Production logic is unchanged
-from the preceding source object; the changed comment surfaces retain the same
-executable coverage. Exact-revision commands and artifact hashes are recorded
-in the feature evidence.
+`bf64d724bd68bcb95f7180e1b79c16351e1d881c`. The changed executable function
+`newHTTPTransport` and all comments-only touched functions are at 100% statement
+coverage. Exact-revision commands and artifact hashes are recorded in the
+feature evidence.

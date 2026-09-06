@@ -858,7 +858,7 @@ Risks / non-goals:
 
 ### 2026-09-05 22:00:09 CDT — Prevent unrecorded transport replay
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `bf64d724bd68bcb95f7180e1b79c16351e1d881c`
 
 Affected files:
 
@@ -894,6 +894,39 @@ Risks / non-goals:
 - This repair does not admit or release the API. The real-consumer contract,
   dependency pin, and orchestrator final admission remain open.
 - No push, PR, tag, deployment, live request, or remote mutation is performed.
+
+### 2026-09-05 22:20:00 CDT — Record transport replay repair evidence
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow.toml`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record the fresh severe audit findings and exact Go 1.26.6 development-host
+verification for source `bf64d724bd68bcb95f7180e1b79c16351e1d881c`.
+Preserve `in_progress` state and the separate consumer/admission blockers.
+
+Verification:
+
+- exact format, vet, race, coverage, race50, focused race50, fuzz, HMAC,
+  external syntax, benchmark, authority, provenance, and clean-clone evidence
+
+Risks / non-goals:
+
+- Source-clean worker evidence is not orchestrator final admission.
+- No push, PR, tag, release, deployment, live request, remote mutation, or
+  GOTTH Board mutation is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 

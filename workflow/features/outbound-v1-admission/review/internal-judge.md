@@ -298,3 +298,26 @@ to this repair. Exact verify/build, uncached race coverage, focused race50,
 three fuzz targets, HMAC, synthetic compile, authority hashes, provenance, and
 detached source clone pass. This is not a CLEAN claim; fresh independent review
 and the consumer pin remain open.
+
+## Fresh post-pass-11 audit - NARROW AND RETRY
+
+Reviewed evidence head: `ef713a777a4949d1f6726f72cabe7a009d667883`
+
+The receipt invariant was still false under Go 1.26.6. The enabled HTTP/2
+transport can replay a reconstructible POST inside one `RoundTrip` after
+`REFUSED_STREAM`, selected peer protocol errors, or graceful GOAWAY. That
+second wire send has no distinct library attempt or receipt. The same audit
+found that `io.ReadFull` cost comments omitted repeated `(0, nil)` callbacks
+and `waitContext` falsely treated a timer delay as a wall-time upper bound.
+
+## Bounded replay repair - SOURCE CLEAN / ADMISSION OPEN
+
+Reviewed source: `bf64d724bd68bcb95f7180e1b79c16351e1d881c`
+
+The owned transport now explicitly permits HTTP/1 only. A real TLS integration
+test uses an HTTP/2-capable server and proves exactly one HTTP/1 request. The
+entropy and timer comments now match Go source. Exact Go 1.26.6 development-host
+format, vet, race, coverage, race50, focused race50, fuzz, HMAC, external syntax,
+benchmark, authority, and clean-clone gates pass. Changed executable coverage
+is 100%. This audit does not admit the feature; the real consumer contract/pin
+and orchestrator final admission remain open.

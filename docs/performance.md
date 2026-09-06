@@ -16,7 +16,7 @@ semantics and provide matched evidence before claiming an overall speedup.
 
 ## Environment and method
 
-- Host: agenthost, Linux amd64; Intel Core i7-7660U at 2.50 GHz.
+- Host: development, Linux amd64; AMD EPYC 7551P 32-Core Processor.
 - Compiler/runtime: Go 1.26.6-X:nodwarf5.
 - Command: `go test ./pkg/webhooks -run '^$' -bench '^BenchmarkDeliver$' -benchmem -benchtime=100ms -count=10`.
 - Fixture: fixed clock, in-memory receipt sink, deterministic local
@@ -26,32 +26,27 @@ semantics and provide matched evidence before claiming an overall speedup.
 - Ten sample means per workload; nearest-rank percentiles. With ten samples,
   p95 and p99 are both the maximum and are coarse.
 - Raw exact-source output at
-  `53872b9c99d2a7a6d90035ed9564d760c464c298`:
-  `/tmp/gotth-webhooks-53872b9.benchmark.txt`, SHA-256
-  `207bb0404bf222a23455e21788644d0cd44fc2cb7161d0eaa22e2805ecb61fa8`.
-- Later source `a3fb596b018069e65562c6a5f434236b9e7b37b4` and its intermediate
-  evidence/source objects change only full-line production comments. Their
-  non-comment production-source hashes equal the benchmark source's final
-  evidence head, so no runtime benchmark rerun or new performance claim is
-  manufactured. Identity evidence is recorded in `verification.md`.
+  `bf64d724bd68bcb95f7180e1b79c16351e1d881c`:
+  `/tmp/gotth-webhooks-bf64d72.benchmark.txt`, SHA-256
+  `8d67754d4ccd68ab227d770656a793d5799eef3dafce2200f5f1a00d0632eaeb`.
 
 ## Results
 
 | Workload | p50 | p95 | p99 | p50 throughput | Bytes/op range | Allocs/op range |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| empty payload | 35.369 us | 53.979 us | 53.979 us | 28,273.35 ops/s | 4,300..4,313 | 73 |
-| small 1 KiB payload | 27.768 us | 38.873 us | 38.873 us | 36,012.68 ops/s | 5,325..5,341 | 74 |
-| typical 64 KiB payload | 0.881020 ms | 1.339400 ms | 1.339400 ms | 1,135.05 ops/s | 70,107..70,390 | 74 |
-| boundary 1 MiB payload | 11.349994 ms | 13.915099 ms | 13.915099 ms | 88.11 ops/s | 1,055,513..1,060,640 | 77..82 |
-| pathological 64 KiB+1 response | 32.905 us | 44.497 us | 44.497 us | 30,390.52 ops/s | 4,487..4,495 | 78 |
+| empty payload | 27.698 us | 29.526 us | 29.526 us | 36,103.69 ops/s | 4,339..4,347 | 73 |
+| small 1 KiB payload | 34.271 us | 35.364 us | 35.364 us | 29,179.19 ops/s | 5,371..5,394 | 74 |
+| typical 64 KiB payload | 0.306776 ms | 0.312970 ms | 0.312970 ms | 3,259.71 ops/s | 70,576..70,722 | 74 |
+| boundary 1 MiB payload | 4.579924 ms | 4.722347 ms | 4.722347 ms | 218.34 ops/s | 1,059,659..1,060,640 | 76 |
+| pathological 64 KiB+1 response | 37.076 us | 37.585 us | 37.585 us | 26,971.63 ops/s | 4,524..4,534 | 78 |
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection
 proves bounded work and failure, not network latency. Exact-source payload
-throughput ranged from 48.93 to 100.78 MB/s across typical and boundary
-payload samples.
+throughput ranged from 213.63 to 228.95 MB/s across typical and boundary
+payload samples at the p50 values.
 
-Earlier runs on the same uncontrolled shared host produced drastically
-different wall times while allocations remained comparatively stable. The
+Earlier runs on uncontrolled shared hosts produced drastically different wall
+times while allocations remained comparatively stable. The
 causal-deadline repair only reorders bounded error-classification branches and
 adds test-only real-transport fixtures; it is not treated as an optimization.
 An earlier correctness repair also

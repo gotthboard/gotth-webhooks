@@ -61,3 +61,13 @@ may repeatedly return `(0, nil)`, so response byte count alone does not bound
 local copy-loop iterations. The contract now carries completed Read callback
 count through `consumeResponse`, attempt, and Deliver. No runtime source, new
 fetch, broker packet, or graph was required.
+
+The fresh post-pass-11 audit directly inspected Go 1.26.6
+`net/http/h2_bundle.go` request retry logic, `net/http.Transport` protocol and
+HTTP/1 retry selection, `io.ReadAtLeast`/`io.ReadFull`, and `time.NewTimer`.
+HTTP/2 may replay a reconstructible request after `REFUSED_STREAM`, selected
+peer protocol errors, or graceful GOAWAY inside one `RoundTrip`; HTTP/1 does
+not replay this unmarked POST after request bytes are written. `io.ReadFull`
+can repeat zero-progress callbacks, and a timer becomes eligible after at least
+its delay rather than guaranteeing a return-time upper bound. These source
+contracts drive the current narrow repair and do not constitute admission.
