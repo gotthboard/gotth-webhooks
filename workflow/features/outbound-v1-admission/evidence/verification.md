@@ -27,3 +27,27 @@ Technical admission does not release the module or promise compatibility. A
 real-consumer contract, behavioral validation, and exact dependency pin remain
 hard release/compatibility gates under `docs/RELEASING.md`. No forbidden action
 occurred.
+
+## Post-admission receipt-time repair
+
+Independent review report `/tmp/gotth-bb-v4-independent-judge-10.md` identified
+raw nanosecond receipt timestamps as incompatible with the exact PostgreSQL
+microsecond contract. Source `c92f9aab1537bd49d035b7019ef7e00af44d5679`
+uses the existing private clock injection and one private helper to apply UTC
+conversion and `time.Truncate(time.Microsecond)` to all start/finish readings.
+
+The retained expected-red log proves that delivered, permanent transport
+failure, and recorder-failure paths exposed the sub-microsecond input before
+the fix. The repaired regression proves exact UTC/microsecond callback and
+result values while preserving clock-call count, ordering, and duration. On
+development, exact Go 1.26.6-X:nodwarf5 full, verify, fresh race coverage, full
+race50, focused race50, three fuzz, OpenSSL HMAC, external syntax compile,
+performance, and second clean-clone gates all passed. Coverage is 97.3%; the
+new helper is 100.0% covered. Exact commands, paths, hashes, fuzz counts,
+performance results, and limitations are in `docs/verification.md` and
+`docs/performance.md`.
+
+This is worker verification, not admission. Two fresh independent reviews are
+still orchestrator-owned. The base feature remains admitted, the repair remains
+unreleased, and the real-consumer behavior/pin remains a separate hard release
+and compatibility gate. No forbidden action occurred.

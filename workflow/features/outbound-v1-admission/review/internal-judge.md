@@ -351,3 +351,26 @@ Exact Go 1.26.6 development-host full, verify, race coverage, race50, focused
 race50, fuzz, OpenSSL HMAC, external compile, benchmark, and clean-clone gates
 pass. This is a worker repair verdict, not final admission. The orchestrator
 owns that decision, and workflow state remains `in_progress`.
+
+## Independent cold pass 15 - NARROW AND RETRY
+
+Reviewed admitted head: `35b2c9361ed935f49de50bec1d8a13feab21b186`
+
+The independent Judge found that Dispatcher receipt start and finish values
+used raw `time.Now().UTC()` precision. PostgreSQL stores timestamps at
+microsecond precision, so exact downstream persistence comparisons could not
+round-trip the library values. Report: `/tmp/gotth-bb-v4-independent-judge-10.md`.
+
+## Receipt-time repair - SOURCE CLEAN / TWO REVIEWS OPEN
+
+Reviewed source: `c92f9aab1537bd49d035b7019ef7e00af44d5679`
+
+All four receipt clock reads now pass through one private UTC/microsecond
+truncation helper while retaining the existing injected clock. Expected-red
+and repaired tests cover delivery success, permanent transport failure, and
+ambiguous recorder failure, including exact callback/result equality and
+duration/order invariants. Exact-source Go 1.26.6 development gates pass at
+97.3% statement coverage; the helper is 100.0% covered. The repair is a narrow
+unreleased candidate. It does not reopen base admission, establish release
+compatibility, or satisfy the separate real-consumer behavior/pin gate. Two
+fresh independent reviews remain orchestrator-owned.

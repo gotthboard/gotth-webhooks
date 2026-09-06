@@ -1,5 +1,89 @@
 # Verification status
 
+## Post-admission receipt-time repair candidate
+
+Independent review report `/tmp/gotth-bb-v4-independent-judge-10.md` found
+that Dispatcher receipts exposed unquantized clock nanoseconds despite the
+downstream exact PostgreSQL microsecond contract. The report's SHA-256 is
+`e377a40d6149f4bc2b10c51af10ca7955ac3ccccdf6ed9c1e339b2fb0f872fa0`.
+Source commit
+`c92f9aab1537bd49d035b7019ef7e00af44d5679` uses the existing private clock
+hook and converts every receipt start and finish reading with
+`value.UTC().Truncate(time.Microsecond)` before recorder or result exposure.
+
+The expected-red regression exercised delivered, permanent transport failure,
+and receipt-recording failure paths with non-UTC, sub-microsecond clock values.
+Before the source repair, all three paths retained nanoseconds; its retained
+log has SHA-256
+`125cbc71301011b2bfecff555bfbee4348ce904a1dff974845eba6d8f30e0fd2`.
+After the repair, the same test proves exact UTC values, microsecond alignment,
+callback/result identity, two clock reads, nonnegative ordering, and the
+expected two-millisecond interval. Focused local tests and vet passed with
+`GOMAXPROCS=2` and `-p=1`.
+
+Development-host verification used Go 1.26.6-X:nodwarf5 on Linux amd64 in
+isolated detached clone
+`/tmp/gotth-webhooks-c92f9aa-receipt-time.cLMg65/repo`. The source bundle is
+SHA-256 `71b672d8247743aa70609ea20a9ff11482cb0cef234e1d5080a933252fda69c2`.
+The exact runner is retained as `gotth-webhooks-c92f9aa-run-gates.sh`, SHA-256
+`ebe4fb352a579c961614091dfaef0597f0726610d5cd606f7082283f8711fad2`.
+Every gate log records before/after HEAD at exact source
+`c92f9aab1537bd49d035b7019ef7e00af44d5679`, empty before/after status, and
+exit 0. The exact gates were:
+
+- uncached `go test -mod=readonly -count=1 ./...`;
+- `make verify`;
+- uncached `go test -mod=readonly -count=1 -race
+  -coverprofile=/tmp/gotth-webhooks-c92f9aa-receipt-time.cLMg65/c92f9aa.coverage.out
+  ./...`;
+- full repository `go test -mod=readonly -race -count=50 ./...`;
+- focused `go test -mod=readonly -race -count=50 ./pkg/webhooks -run
+  '^(TestReceiptTimesAreExactUTCMicroseconds|TestDeliverRetriesRecordsAndSucceeds|TestDeliverPermanentAndRedirectResponsesDoNotRetry|TestDeliverExhaustsAllowlistedTransportFailures|TestDeliverCancellationWhileReadingResponse|TestDeliverReceiptFailureStopsRetries)$'`;
+- `FuzzParseEndpoint`, `FuzzSignedRequestDeterministic`, and
+  `FuzzCanonicalContentType` with `-run '^$' -fuzztime=5s`;
+- independent OpenSSL HMAC vector;
+- disposable external-consumer syntax compile;
+- ten 100 ms samples of `BenchmarkDeliver` with allocation reporting; and
+- a second detached clean clone from the retained source bundle followed by
+  an uncached full test and final clean-status assertion.
+
+All gates passed. Fresh race coverage is 97.3% statements and
+`canonicalReceiptTime` is 100.0% covered. Fuzz execution counts were 1,059,828
+endpoint, 925,711 signing, and 1,139,852 content-type inputs. The external
+consumer remains syntax evidence only; no real-consumer behavior or
+compatibility claim follows from it.
+
+Retained local copies are under
+`/tmp/gotth-webhooks-c92f9aa-receipt-time-evidence`. Development artifacts and
+SHA-256 values are:
+
+- full / verify / race coverage
+  `fdd3034a4b53c77a0eeb998be281be5703acc1af58ae5c2a66745d5a04724d21` /
+  `d6c2080179097333418da01612719071809391b81068bb368f396c77ad64b8b0` /
+  `30daa5ddbea4e220039fd5cf8f340e605196932bf0b6f42ed3cb0b5db9893150`;
+- coverage profile / function report
+  `a10415f1428d14224866e8441eb838fa0e72cb03c865e9b314cf6213feee36d0` /
+  `1e0d5111bf66ba246f0b4c1f090675e2ee5b7608fae15eff02b945466ab80425`;
+- full / focused race50
+  `5354783bba07f618e0df4060724cc36e6750e3f0455594569010a5576f5f02e4` /
+  `3cfefe6049eb93894660502aee9a376aaf6be2338890aaf2e9bdb2649a3bcefa`;
+- fuzz endpoint / signing / content type
+  `233af201e7250c68b9a16f479627245ad7267d4d2057743a9be008e8ac4f9fee` /
+  `c2ac4ef0c1f854238a65ce36ec664957a5377418677f7e2f65bb6d5dbea4a282` /
+  `260d26306e1d193421ad252b31f039390656a43e435e6644c4fd9e228f89b04a`;
+- HMAC / external compile / benchmark / clean clone
+  `19270d5e0c972b50007e0c369e6eddf8dadb42b4cba7acb62f3025bc314bc46e` /
+  `353f5e64970032f1bcf524b7a8540a84cc4eaf6f154205536ae5cb40957281f9` /
+  `c0ecd853e2b05cc0e016d1acfbdf30d7454ddabe6b565443d050709e0bc41987` /
+  `2cffa6aa86a31e21a1048d5993ff8a4990767ff0064809de1121dd52e4b39409`.
+
+The standalone base remains admitted. This post-admission compatibility repair
+is an unreleased candidate pending the two fresh independent reviews owned by
+the orchestrator. The real-consumer behavior and exact dependency pin remain
+separate hard release/compatibility gates under `docs/RELEASING.md`. No push,
+merge, PR, tag, release, deployment, live request, remote-repository mutation,
+or GOTTH Board mutation occurred.
+
 Independent review of evidence head
 `381b680e4b6e0945746d5d2db87b3a60bc797924` found that the copied compact
 IANA prefix list was not an independent completeness oracle and that status

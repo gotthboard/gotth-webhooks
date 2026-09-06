@@ -1079,6 +1079,45 @@ Risks / non-goals:
   PostgreSQL behavior, release the module, or claim the two required
   independent reviews.
 
+### 2026-09-06 07:34:19 CDT - Record receipt-time repair evidence
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `docs/CHANGELOG.md`
+- `docs/performance.md`
+- `docs/verification.md`
+- `workflow.events.jsonl`
+- `workflow/COVERAGE.md`
+- `workflow/features/outbound-v1-admission/README.md`
+- `workflow/features/outbound-v1-admission/evidence/authority.md`
+- `workflow/features/outbound-v1-admission/evidence/verification.md`
+- `workflow/features/outbound-v1-admission/review/internal-judge.md`
+
+Explanation:
+
+Record exact source, expected-red, focused local checks, and the complete Go
+1.26.6 development-host gate matrix for the receipt-time compatibility repair.
+Keep the admitted base feature separate from this unreleased repair candidate
+and preserve the real-consumer behavior and exact dependency pin as hard
+release/compatibility gates.
+
+Verification:
+
+- uncached full, verify, fresh race coverage, full/focused race50, three fuzz
+  targets, OpenSSL HMAC, external syntax compile, benchmark, and clean-clone
+  gates at exact source `c92f9aab1537bd49d035b7019ef7e00af44d5679`
+- every retained gate log records Go version, before/after HEAD, empty status,
+  and exit 0; statement coverage is 97.3%
+
+Risks / non-goals:
+
+- This worker evidence does not admit the repair; two fresh independent
+  reviews remain orchestrator-owned.
+- No push, merge, PR, tag, release, deployment, live request, remote mutation,
+  or GOTTH Board mutation is performed.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

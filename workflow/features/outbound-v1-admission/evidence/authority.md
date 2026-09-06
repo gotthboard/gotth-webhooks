@@ -82,3 +82,13 @@ it did not fetch new authority data. Independent report
 `0fed933a862d1310ce09612f2cd7919bbc9848a0bf9f86855e8c950f2148c93c`,
 identified the missing independent oracle and the admission-gate conflation at
 reviewed clean head `381b680e4b6e0945746d5d2db87b3a60bc797924`.
+
+The receipt-time repair directly inspected Go 1.26.6 documentation and source
+for `time.Time.UTC` and `time.Time.Truncate`. `UTC` sets the location to UTC;
+`Truncate` rounds down to a duration multiple since the zero time using the
+absolute instant and strips the monotonic reading. The implementation therefore
+uses `value.UTC().Truncate(time.Microsecond)` explicitly, never a local zone or
+round-to-nearest conversion. No external fetch or new authority snapshot was
+needed. The triggering independent report is
+`/tmp/gotth-bb-v4-independent-judge-10.md`, SHA-256
+`e377a40d6149f4bc2b10c51af10ca7955ac3ccccdf6ed9c1e339b2fb0f872fa0`.

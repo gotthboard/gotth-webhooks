@@ -26,30 +26,31 @@ semantics and provide matched evidence before claiming an overall speedup.
 - Ten sample means per workload; nearest-rank percentiles. With ten samples,
   p95 and p99 are both the maximum and are coarse.
 - Raw exact-source output at
-  `7de792774d2a9229f577d8d46dfb803b1b1c9bfe`:
-  `/tmp/gotth-webhooks-7de7927-repair.0tljnO/7de7927.performance.log`
+  `c92f9aab1537bd49d035b7019ef7e00af44d5679`:
+  `/tmp/gotth-webhooks-c92f9aa-receipt-time.cLMg65/c92f9aa.performance.log`
   on development, SHA-256
-  `73f7d021f17edfcc39c2f6dbe22e42faed12c346fd929ae8f6fa2114ddbe450a`.
+  `c0ecd853e2b05cc0e016d1acfbdf30d7454ddabe6b565443d050709e0bc41987`.
 
 ## Results
 
 | Workload | p50 | p95 | p99 | p50 throughput | Bytes/op range | Allocs/op range |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| empty payload | 28.537 us | 30.048 us | 30.048 us | 35,042.23 ops/s | 4,337..4,350 | 73 |
-| small 1 KiB payload | 34.263 us | 35.588 us | 35.588 us | 29,186.00 ops/s | 5,373..5,385 | 74 |
-| typical 64 KiB payload | 0.308946 ms | 0.314287 ms | 0.314287 ms | 3,236.81 ops/s | 70,580..70,673 | 74 |
-| boundary 1 MiB payload | 4.531674 ms | 4.921437 ms | 4.921437 ms | 220.67 ops/s | 1,059,238..1,061,233 | 75..77 |
-| pathological 64 KiB+1 response | 36.108 us | 37.381 us | 37.381 us | 27,694.69 ops/s | 4,527..4,536 | 78 |
+| empty payload | 28.331 us | 29.618 us | 29.618 us | 35,297.02 ops/s | 4,334..4,349 | 73 |
+| small 1 KiB payload | 33.787 us | 34.925 us | 34.925 us | 29,597.18 ops/s | 5,373..5,393 | 74 |
+| typical 64 KiB payload | 0.308038 ms | 0.315773 ms | 0.315773 ms | 3,246.35 ops/s | 70,536..70,711 | 74 |
+| boundary 1 MiB payload | 4.202430 ms | 4.535586 ms | 4.535586 ms | 237.96 ops/s | 1,060,141..1,061,102 | 76..77 |
+| pathological 64 KiB+1 response | 36.313 us | 37.059 us | 37.059 us | 27,538.35 ops/s | 4,523..4,542 | 78 |
 
 The pathological fixture uses an in-memory reader, so fast overflow rejection
 proves bounded work and failure, not network latency. Exact-source payload
-throughput ranged from 212.13 to 231.39 MB/s across typical and boundary
+throughput ranged from 212.75 to 249.52 MB/s across typical and boundary
 payload samples at the p50 values.
 
 Earlier runs on uncontrolled shared hosts produced drastically different wall
-times while allocations remained comparatively stable. The current IANA
-completeness repair adds only test fixtures and test code; the production
-benchmark mechanism is unchanged and is not treated as an optimization. An
+times while allocations remained comparatively stable. The current receipt-
+time repair adds one constant-time UTC conversion and microsecond truncation
+per start and finish clock reading; the benchmark mechanism is unchanged and
+the result is not treated as an optimization. An
 earlier correctness repair removed the `http.Client` redirect layer, so lower
 allocation counts across older runs include a mechanism change rather than a
 controlled optimization comparison. The original raw artifact remains
