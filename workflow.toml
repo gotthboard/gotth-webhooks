@@ -82,10 +82,10 @@ folder = "workflow/features/dispatcher-lifecycle-repair"
 source_path = "pkg/webhooks"
 worktree = "/home/linus/.openclaw/workspace/.artifacts/worktrees/gotth-webhooks-dispatcher-lifecycle"
 branch = "feature/v1-dispatcher-lifecycle"
-scope = ["Dispatcher close admission", "Owned transport idle-resource cleanup", "Lifecycle concurrency tests", "Verification evidence"]
-non_goals = ["Request tracking", "Consumer generation registry", "Forced cancellation", "Public transport injection", "Remote mutation"]
+scope = ["Shared dispatcher close admission and drain", "Owned transport idle-resource cleanup", "Lifecycle concurrency tests", "Verification evidence"]
+non_goals = ["Per-request identity or cancellation tracking", "Consumer generation registry", "Forced cancellation", "Public transport injection", "Remote mutation"]
 affected_files = ["README.md", "docs/**", "pkg/webhooks/**", "workflow.toml", "workflow.events.jsonl", "workflow/features/dispatcher-lifecycle-repair/**"]
-invariants = ["Calls admitted before close may finish", "Calls admitted after close perform no delivery work", "Owned transport cleanup runs exactly once", "No consumer lifecycle policy is invented"]
+invariants = ["Close waits for calls admitted before the closed transition", "Calls admitted after close perform no delivery work", "Owned transport cleanup runs exactly once after drain", "No consumer lifecycle policy is invented"]
 acceptance = ["ErrClosed and Close are documented public contracts", "Focused lifecycle and concurrency tests cover the issue surface", "Race, repeat, coverage, fuzz, performance, external-consumer, and clean-clone gates pass", "Exact evidence is retained and the feature worktree is clean"]
 
 [feature.dispatcher-lifecycle-repair.rollback]

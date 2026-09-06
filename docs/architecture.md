@@ -127,14 +127,23 @@ lease or uniqueness mechanism. The consumer also persists and allocates the
 next attempt number across invocations. Hiding a partial in-memory map here
 would be garbage because it would fail across processes and restarts.
 
-Dispatcher retirement has one linearization point: an atomic closed flag is
-set before transport cleanup starts. A `Deliver` admitted before that store
-continues under the existing delivery contract; a later admission returns
-`ErrClosed` before input validation, copying, recording, or network work.
-`Close` invokes the owned transport's `CloseIdleConnections` operation exactly
-once and concurrent callers wait for that invocation to complete. Go 1.26's
-transport contract does not interrupt active requests and marks connections
-returned by active requests for closure rather than idle reuse. The library
-therefore needs no request counter, cancellation registry, or generation map.
-Consumers remain responsible for stopping producers and waiting for their own
-generation to quiesce before discarding its dispatcher.
+Dispatcher retirement is coordinated by one shared lifecycle object, including
+across copies of a dispatcher value. `Deliver` takes its admission mutex,
+rejects a closed dispatcher, or registers one active delivery before releasing
+the mutex. `Close` takes the same mutex, marks the lifecycle closed, releases
+the mutex, waits for every registered delivery to leave, and only then invokes
+the owned transport's `CloseIdleConnections` operation exactly once. A later
+admission returns `ErrClosed` before input validation, copying, recording, or
+network work. Concurrent `Close` callers wait for the same delivery drain and
+cleanup to finish.
+
+The wait includes validation, all attempts and retry delays, and receipt
+recording. This ordering is required because Go 1.26's transport clears the
+effect of an earlier `CloseIdleConnections` call when a later request seeks an
+idle connection; merely allowing an admitted delivery to start transport work
+after cleanup can therefore leave a connection pooled. Waiting means no
+admitted delivery can create or reuse a connection after cleanup. The library
+tracks only an aggregate admitted-delivery count, not request identity,
+cancellation, or signing generations. Consumers remain responsible for
+stopping producers before closing a generation; `Close` provides the final
+drain boundary and may wait for cooperative delivery dependencies.

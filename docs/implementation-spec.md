@@ -10,8 +10,9 @@
   return the final known result.
 - `Dispatcher.Close()`: prevent new delivery admission and release the owned
   transport's idle connections. It is safe to call repeatedly and
-  concurrently. Concurrent calls do not return before the one cleanup
-  invocation completes.
+  concurrently. It waits for every delivery admitted before the closed
+  transition, then performs one cleanup invocation. Concurrent calls do not
+  return before that drain and cleanup complete.
 - `Recorder.Record(ctx, Receipt)`: consumer-owned persistence boundary. Calls
   may be repeated after an unknown store outcome, so implementations must
   be concurrency-safe, upsert by `(delivery_id, attempt)`, and reject
@@ -23,21 +24,32 @@ owned transport permits HTTP/1 only: Go 1.26.6 HTTP/2 can replay requests
 inside one `RoundTrip`, which would violate the receipt-per-send contract.
 Tests exercise internal dependency seams that are not available to consumers.
 
-`Deliver` checks dispatcher retirement before every other argument or message
-check. Once `Close` stores the closed state, each newly admitted call returns
-the stable `ErrClosed` sentinel with a zero `Result` and performs no validation,
-copy, recorder, wait, clock, or transport work. A call admitted before that
-store may complete normally and is not canceled by `Close`.
+`Deliver` takes the shared lifecycle admission mutex before every other
+argument or message check. If closed, it returns the stable `ErrClosed`
+sentinel with a zero `Result` and performs no validation, copy, recorder, wait,
+clock, or transport work. Otherwise it increments the lifecycle wait group
+while still holding the mutex, releases the mutex, and defers decrement until
+every validation, attempt, retry wait, and receipt operation has returned.
+
+The first `Close` takes the same mutex, sets closed, releases the mutex, waits
+for the registered group, and only then cleans up transport resources. No wait
+group increment can race with that wait: increments occur only while the mutex
+is held and none are permitted after closed is set. Dispatcher values share a
+pointer to this lifecycle state so a pre-first-use value copy cannot bypass or
+split retirement.
 
 The production transport implements `CloseIdleConnections`. `Close` invokes
 that method exactly once through the existing package-internal transport seam;
 the public `Config` does not gain a transport or cleanup hook. Go 1.26 defines
 the operation to close idle keep-alive connections without interrupting active
-ones, and its implementation closes connections that become idle after the
-call. `Close` has O(1+Ct) CPU time and O(1+Cs) auxiliary space, where Ct/Cs are
-the delegated owned-transport cleanup costs; repeat calls are O(1) after the
-first cleanup. It returns no error because the standard transport cleanup
-operation returns none.
+ones. Its implementation can clear the prior close-idle state when a later
+request seeks a pooled connection, so cleanup occurs only after admitted
+deliveries can no longer enter transport work. `Close` has O(1+A+Ct) CPU time,
+Omega(1), and O(1+Cs) auxiliary space, where A is synchronization work for
+admitted deliveries and Ct/Cs are delegated owned-transport cleanup costs;
+wall latency includes every admitted delivery's delegated work. Repeat and
+concurrent calls wait for the first call and perform no second cleanup. It
+returns no error because the standard transport cleanup operation returns none.
 
 `Message` contains endpoint, stable delivery ID, consumer-durable first attempt
 number, opaque event type, content type, and body. Zero first attempt defaults

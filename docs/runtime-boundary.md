@@ -27,7 +27,9 @@
 - Go 1.26.6 `http.Transport.CloseIdleConnections`: the method is safe under the
   transport's concurrent-use contract, closes idle keep-alive connections,
   does not interrupt active requests, and marks connections returned by
-  active requests for closure rather than later reuse.
+  active requests for closure rather than later reuse. A request entering the
+  transport after that call can clear the close-idle state while seeking a
+  pooled connection, so dispatcher cleanup must follow admitted-delivery drain.
 - Go 1.26.6 `net/http` source: direct HTTPS connection-pool keys include target
   scheme and authority; only proxied HTTP uses an any-target pool key.
 - Go 1.26.6 `net.Resolver.LookupNetIP`: returns IP addresses for a host;

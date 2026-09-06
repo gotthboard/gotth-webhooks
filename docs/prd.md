@@ -63,9 +63,9 @@ compile fixture is not that evidence.
 - `WHK-013`: Publish the source under the maintainer-selected MIT license.
 - `WHK-014`: Let consumers retire a dispatcher explicitly. Once retirement
   begins, reject newly admitted deliveries with a stable closed
-  classification, allow already-admitted deliveries to finish, and release
-  the owned transport's idle connection resources through a concurrent-safe,
-  idempotent close operation.
+  classification, wait for already-admitted deliveries to finish, and only
+  then release the owned transport's idle connection resources through a
+  concurrent-safe, idempotent close operation.
 
 ## Non-goals
 
@@ -78,8 +78,9 @@ compile fixture is not that evidence.
   from consumer process crashes.
 - Private-network destinations, custom ports, HTTP, ambient proxies, redirects,
   mTLS, or arbitrary caller-provided transports in V1.
-- Consumer generation registries, request tracking, forced cancellation of
-  admitted deliveries, or ownership of consumer-supplied transports.
+- Consumer generation registries, per-request identity/cancellation tracking,
+  forced cancellation of admitted deliveries, or ownership of
+  consumer-supplied transports.
 
 ## Acceptance
 

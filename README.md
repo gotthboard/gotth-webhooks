@@ -106,12 +106,14 @@ microsecond precision before both recorder and result exposure. An in-memory
 map would not protect multiple processes or survive a crash, so the library
 does not fake that guarantee.
 
-`Close` is safe to call repeatedly and concurrently. Once it begins, new
-`Deliver` admissions return `ErrClosed`; calls already admitted may finish.
-It releases the dispatcher's owned idle HTTP connections without canceling
-active delivery. Consumers rotating signing generations should first stop new
-work for the old generation, wait for their own work to quiesce, then close and
-discard that dispatcher.
+`Close` is safe to call repeatedly and concurrently. Once its closed transition
+occurs, new `Deliver` admissions return `ErrClosed`. It waits for calls already
+admitted, including their retries and receipt recording, then releases the
+dispatcher's owned idle HTTP connections. It does not cancel delivery, so a
+dependency that violates its context contract can also prevent `Close` from
+returning. Consumers rotating signing generations should first stop new work
+for the old generation, then close and discard that dispatcher after `Close`
+returns.
 
 ## Receiver contract
 
