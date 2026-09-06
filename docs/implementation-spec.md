@@ -14,8 +14,10 @@
   conflicting records.
 
 `Config` contains one `Secret`, a bounded `RetryPolicy`, attempt and receipt
-timeouts, and a required `Recorder`. Production dependencies are fixed. Tests
-exercise internal dependency seams that are not available to consumers.
+timeouts, and a required `Recorder`. Production dependencies are fixed. The
+owned transport permits HTTP/1 only: Go 1.26.6 HTTP/2 can replay requests
+inside one `RoundTrip`, which would violate the receipt-per-send contract.
+Tests exercise internal dependency seams that are not available to consumers.
 
 `Message` contains endpoint, stable delivery ID, consumer-durable first attempt
 number, opaque event type, content type, and body. Zero first attempt defaults

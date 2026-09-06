@@ -81,19 +81,25 @@ var ianaSpecialPurposePrefixes = []netip.Prefix{
 var allocatedGlobalIPv6 = netip.MustParsePrefix("2000::/3")
 
 // NewDeliveryID returns a 192-bit CSPRNG-backed, base64url delivery identity.
-// All-input time and auxiliary space are O(n), Omega(1), with no single tight
-// bound because entropy acquisition can fail early; the successful path is
-// Theta(n). n is the fixed 24-byte entropy input; delegated costs are
-// crypto/rand.Reader and base64 encoding.
+// Whole-function CPU time is O(c+n+Rt(c,n)+Et(z)) and auxiliary space is
+// O(n+Rs(c,n)+Es(z)), both Omega(1), with no input-independent tight bound.
+// n is the fixed 24-byte entropy input, c is entropy-reader callbacks, z is a
+// returned error's formatted text, Rt/Rs are delegated crypto/rand.Reader
+// CPU/allocation, and Et/Es are delegated error-formatting costs. The default
+// successful path is Theta(n) local work. No finite callback bound exists for
+// a reader that repeatedly returns (0, nil).
 func NewDeliveryID() (string, error) {
 	return newDeliveryID(rand.Reader)
 }
 
 // newDeliveryID isolates the entropy read so its failure contract is directly
-// testable. All-input time and auxiliary space are O(n), Omega(1), with no
-// single tight bound because the delegated reader can fail before n bytes; the
-// successful read/encode path is Theta(n). n is the fixed 24-byte entropy
-// input.
+// testable. Whole-function CPU time is O(c+n+Rt(c,n)+Et(z)) and auxiliary
+// space is O(n+Rs(c,n)+Es(z)), both Omega(1), with no input-independent tight
+// bound. n is the fixed 24-byte entropy input, c is reader callbacks, z is a
+// returned error's formatted text, Rt/Rs are delegated reader CPU/allocation,
+// and Et/Es are delegated error-formatting costs. The successful read/encode
+// path is Theta(n) local work. No finite callback bound exists for a reader
+// that repeatedly returns (0, nil).
 func newDeliveryID(source io.Reader) (string, error) {
 	var raw [24]byte
 	if _, err := io.ReadFull(source, raw[:]); err != nil {

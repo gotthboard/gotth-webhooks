@@ -823,7 +823,7 @@ Risks / non-goals:
 
 ### 2026-09-03 17:10:00 CDT — Record response-callback contract evidence
 
-Commit: current commit; hash assigned by Git after commit
+Commit: `ef713a777a4949d1f6726f72cabe7a009d667883`
 
 Affected files:
 
@@ -854,6 +854,45 @@ Risks / non-goals:
 
 - This evidence does not claim a clean independent review, admission, release,
   compatibility, or consumer behavior.
+- No push, PR, tag, deployment, live request, or remote mutation is performed.
+
+### 2026-09-05 22:00:09 CDT — Prevent unrecorded transport replay
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `docs/architecture.md`
+- `docs/implementation-spec.md`
+- `docs/runtime-boundary.md`
+- `pkg/webhooks/boundary_test.go`
+- `pkg/webhooks/network.go`
+- `pkg/webhooks/retry.go`
+- `pkg/webhooks/transport_integration_test.go`
+- `pkg/webhooks/values.go`
+
+Explanation:
+
+Pin the owned transport to HTTP/1 so Go 1.26.6 cannot replay a webhook POST
+inside one `RoundTrip` without a distinct durable receipt. Prove HTTP/1 is
+negotiated against a TLS server that advertises HTTP/2. Correct the remaining
+zero-progress entropy-reader and timer-latency cost contracts found by the
+same fresh audit.
+
+Verification:
+
+- focused transport-policy and TLS protocol integration tests
+- exact-commit repository, race, coverage, fuzz, and clean-clone gates are
+  recorded separately
+
+Risks / non-goals:
+
+- V1 no longer negotiates HTTP/2; protocol breadth is deliberately traded for
+  observable one-receipt-per-send behavior.
+- This repair does not admit or release the API. The real-consumer contract,
+  dependency pin, and orchestrator final admission remain open.
 - No push, PR, tag, deployment, live request, or remote mutation is performed.
 
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution

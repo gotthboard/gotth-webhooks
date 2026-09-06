@@ -115,16 +115,20 @@ func (d safeDialer) DialContext(ctx context.Context, network, address string) (n
 }
 
 // newHTTPTransport constructs the production-owned no-proxy HTTPS transport.
-// Dispatcher invokes RoundTrip exactly once per attempt, so redirect handling
-// is never entered. Complexity: time and auxiliary space O(1), Omega(1), tight Theta(1);
-// network costs occur only during later requests.
+// It pins HTTP/1 so net/http cannot enter HTTP/2's internal request-replay path
+// after a stream refusal or GOAWAY. Dispatcher invokes RoundTrip exactly once
+// per attempt, so redirect handling is never entered. Complexity: time and
+// auxiliary space O(1), Omega(1), tight Theta(1); network costs occur only
+// during later requests.
 func newHTTPTransport(attemptTimeout time.Duration) *http.Transport {
 	baseDialer := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}
 	checked := safeDialer{resolver: net.DefaultResolver, dialer: baseDialer}
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
 	transport := &http.Transport{
 		Proxy:                  nil,
 		DialContext:            checked.DialContext,
-		ForceAttemptHTTP2:      true,
+		Protocols:              protocols,
 		MaxIdleConns:           32,
 		MaxIdleConnsPerHost:    8,
 		MaxConnsPerHost:        16,

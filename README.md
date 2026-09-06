@@ -23,8 +23,9 @@ V1 provides:
   event type, content type, key ID, and payload digest;
 - a stable delivery identity plus a sensitive derived semantics fingerprint
   for sender-side conflict detection;
-- HTTPS-only endpoint validation, public-address DNS checks immediately before
-  literal-IP dialing, no ambient proxy, and no redirects;
+- HTTPS-only HTTP/1 endpoint validation, public-address DNS checks immediately
+  before literal-IP dialing, no ambient proxy, no implicit protocol replay,
+  and no redirects;
 - explicit bounded retry classification, `Retry-After`, cancellation,
   per-attempt timeout, response-header limit, and response-body limit;
 - mandatory consumer-owned receipt recording before retry or return; and

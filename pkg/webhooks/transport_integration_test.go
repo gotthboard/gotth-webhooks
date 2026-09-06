@@ -70,6 +70,46 @@ func TestTLSLiteralDialAndMalformedRedirectDenialIntegration(t *testing.T) {
 	}
 }
 
+func TestProductionTransportPinsHTTP1AgainstHTTP2Server(t *testing.T) {
+	t.Parallel()
+
+	var mu sync.Mutex
+	requests := 0
+	protocolMajor := 0
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		mu.Lock()
+		requests++
+		protocolMajor = req.ProtoMajor
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+
+	transport := newHTTPTransport(time.Second)
+	defer transport.CloseIdleConnections()
+	roots := x509.NewCertPool()
+	roots.AddCert(server.Certificate())
+	transport.TLSClientConfig.RootCAs = roots
+	checked := safeDialer{
+		resolver: &sequenceResolver{answers: [][]netip.Addr{{netip.MustParseAddr("8.8.8.8")}}},
+		dialer:   &mappingDialer{target: server.Listener.Addr().String()},
+	}
+	transport.DialContext = checked.DialContext
+
+	d, _ := integrationDispatcher(t, transport, 1)
+	result, err := d.Deliver(context.Background(), validMessage())
+	if err != nil || !result.Delivered {
+		t.Fatalf("result=%+v error=%v", result, err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if requests != 1 || protocolMajor != 1 {
+		t.Fatalf("requests=%d HTTP major=%d, want one HTTP/1 request", requests, protocolMajor)
+	}
+}
+
 func TestResponseHeaderLimitIsPermanentIntegration(t *testing.T) {
 	t.Parallel()
 

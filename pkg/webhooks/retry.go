@@ -121,8 +121,10 @@ func parseRetryAfter(value string, now time.Time, maxDelay time.Duration) (time.
 }
 
 // waitContext sleeps without losing cancellation responsiveness. Complexity:
-// CPU time and auxiliary space O(1), Omega(1), tight Theta(1); wall time is at
-// most delay d and is delegated to the runtime timer/context scheduler.
+// CPU time and auxiliary space O(1), Omega(1), tight Theta(1). The timer becomes
+// eligible after at least delay d; cancellation may win earlier, while actual
+// return latency has no finite upper bound in d alone because runtime scheduling
+// is delegated.
 func waitContext(ctx context.Context, delay time.Duration) error {
 	timer := time.NewTimer(delay)
 	defer timer.Stop()

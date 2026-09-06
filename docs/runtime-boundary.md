@@ -3,8 +3,9 @@
 ## Supported targets
 
 - Go 1.26.6 on Linux amd64 is the primary compiler/runtime contract.
-- HTTPS over Go's standard `net/http.Transport`, `crypto/tls`, `net.Resolver`,
-  `net.Dialer`, `crypto/hmac`, `crypto/sha256`, and `crypto/rand`.
+- HTTPS over HTTP/1 using Go's standard `net/http.Transport`, `crypto/tls`,
+  `net.Resolver`, `net.Dialer`, `crypto/hmac`, `crypto/sha256`, and
+  `crypto/rand`.
 - HTTP semantics follow RFC 9110; URL syntax follows RFC 3986; HMAC follows
   RFC 2104/FIPS 198; rate-limit response semantics follow RFC 6585.
 - No database, proxy, custom transport, alternate TLS stack, or live service is
@@ -15,6 +16,11 @@
 - Go 1.26.6 `http.RoundTripper`/`http.Transport`: direct `RoundTrip` executes one
   transaction and does not process redirects; transports are concurrency-safe
   and cache connections. Request context bounds transport and body work.
+- Go 1.26.6 `net/http` source: the bundled HTTP/2 transport can replay requests
+  after `REFUSED_STREAM`, selected protocol errors, and graceful GOAWAY when
+  `GetBody` can reconstruct the body. The owned transport therefore explicitly
+  enables HTTP/1 only. HTTP/1 does not replay an unmarked POST after request
+  bytes are written.
 - Go 1.26.6 `http.Transport.DialContext`: dials may race with connection reuse,
   so address checks belong in the dial function and established validated
   connections may be reused.

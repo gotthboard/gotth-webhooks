@@ -47,11 +47,15 @@ appear in receipts or returned errors.
 ## Network boundary
 
 The production constructor owns `http.Transport`; callers cannot inject a
-RoundTripper, dialer, proxy, or TLS bypass. Only HTTPS port 443 is accepted.
-The dispatcher calls the owned transport's `RoundTrip` exactly once per
-attempt. It never invokes `http.Client` redirect processing, so a 3xx response
-is returned for status classification even when `Location` is malformed. The
-transport disables proxies. For each new TCP connection its
+RoundTripper, dialer, proxy, or TLS bypass. Only HTTPS port 443 over HTTP/1 is
+accepted. The dispatcher calls the owned transport's `RoundTrip` exactly once
+per attempt. HTTP/2 is disabled because Go 1.26.6 may replay a request inside
+one `RoundTrip` after `REFUSED_STREAM`, selected protocol errors, or a graceful
+GOAWAY; that hidden second send could not receive its own receipt. An unmarked
+POST on Go's HTTP/1 transport is not replayed after request bytes are written.
+The dispatcher never invokes `http.Client` redirect processing, so a 3xx
+response is returned for status classification even when `Location` is
+malformed. The transport disables proxies. For each new TCP connection its
 dial hook resolves the hostname, normalizes mapped addresses, rejects the
 entire answer if any address is loopback, private, link-local, multicast,
 unspecified, or in the library's explicit special-purpose prefix table, then

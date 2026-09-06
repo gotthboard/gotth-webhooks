@@ -29,6 +29,9 @@ func TestNewAndProductionTransportPolicy(t *testing.T) {
 	if transport.Proxy != nil || transport.DialContext == nil || transport.MaxResponseHeaderBytes != maxResponseHeaderBytes || transport.TLSClientConfig.MinVersion != 0x0303 {
 		t.Fatalf("unsafe transport policy: %+v", transport)
 	}
+	if transport.Protocols == nil || !transport.Protocols.HTTP1() || transport.Protocols.HTTP2() || transport.Protocols.UnencryptedHTTP2() || transport.ForceAttemptHTTP2 {
+		t.Fatalf("unsafe replay-capable protocol policy: protocols=%v forceHTTP2=%v", transport.Protocols, transport.ForceAttemptHTTP2)
+	}
 }
 
 func TestNewDeliveryID(t *testing.T) {
