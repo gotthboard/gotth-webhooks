@@ -126,3 +126,15 @@ delivery ID can both send; preventing that requires a consumer-owned durable
 lease or uniqueness mechanism. The consumer also persists and allocates the
 next attempt number across invocations. Hiding a partial in-memory map here
 would be garbage because it would fail across processes and restarts.
+
+Dispatcher retirement has one linearization point: an atomic closed flag is
+set before transport cleanup starts. A `Deliver` admitted before that store
+continues under the existing delivery contract; a later admission returns
+`ErrClosed` before input validation, copying, recording, or network work.
+`Close` invokes the owned transport's `CloseIdleConnections` operation exactly
+once and concurrent callers wait for that invocation to complete. Go 1.26's
+transport contract does not interrupt active requests and marks connections
+returned by active requests for closure rather than idle reuse. The library
+therefore needs no request counter, cancellation registry, or generation map.
+Consumers remain responsible for stopping producers and waiting for their own
+generation to quiesce before discarding its dispatcher.

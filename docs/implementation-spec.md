@@ -8,6 +8,10 @@
 - `Dispatcher.Deliver(ctx, Message)`: validate and copy the message, perform at
   most `RetryPolicy.MaxAttempts`, durably record every actual attempt, and
   return the final known result.
+- `Dispatcher.Close()`: prevent new delivery admission and release the owned
+  transport's idle connections. It is safe to call repeatedly and
+  concurrently. Concurrent calls do not return before the one cleanup
+  invocation completes.
 - `Recorder.Record(ctx, Receipt)`: consumer-owned persistence boundary. Calls
   may be repeated after an unknown store outcome, so implementations must
   be concurrency-safe, upsert by `(delivery_id, attempt)`, and reject
@@ -18,6 +22,22 @@ timeouts, and a required `Recorder`. Production dependencies are fixed. The
 owned transport permits HTTP/1 only: Go 1.26.6 HTTP/2 can replay requests
 inside one `RoundTrip`, which would violate the receipt-per-send contract.
 Tests exercise internal dependency seams that are not available to consumers.
+
+`Deliver` checks dispatcher retirement before every other argument or message
+check. Once `Close` stores the closed state, each newly admitted call returns
+the stable `ErrClosed` sentinel with a zero `Result` and performs no validation,
+copy, recorder, wait, clock, or transport work. A call admitted before that
+store may complete normally and is not canceled by `Close`.
+
+The production transport implements `CloseIdleConnections`. `Close` invokes
+that method exactly once through the existing package-internal transport seam;
+the public `Config` does not gain a transport or cleanup hook. Go 1.26 defines
+the operation to close idle keep-alive connections without interrupting active
+ones, and its implementation closes connections that become idle after the
+call. `Close` has O(1+Ct) CPU time and O(1+Cs) auxiliary space, where Ct/Cs are
+the delegated owned-transport cleanup costs; repeat calls are O(1) after the
+first cleanup. It returns no error because the standard transport cleanup
+operation returns none.
 
 `Message` contains endpoint, stable delivery ID, consumer-durable first attempt
 number, opaque event type, content type, and body. Zero first attempt defaults
@@ -178,6 +198,7 @@ unknown error makes a mixed aggregate permanent and its details are redacted.
 4. receipt recording and the delivery loop;
 5. hardened transport and integration boundaries;
 6. external consumer, performance, and review admission.
+7. explicit dispatcher retirement and owned-transport cleanup.
 
 Each production function receives an adjacent complexity contract naming byte
 inputs, address counts, attempts, I/O, allocations, and delegated costs.

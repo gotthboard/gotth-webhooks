@@ -61,6 +61,11 @@ compile fixture is not that evidence.
   possibilities, not exactly once; a timeout or transport error can follow a
   completed receiver action.
 - `WHK-013`: Publish the source under the maintainer-selected MIT license.
+- `WHK-014`: Let consumers retire a dispatcher explicitly. Once retirement
+  begins, reject newly admitted deliveries with a stable closed
+  classification, allow already-admitted deliveries to finish, and release
+  the owned transport's idle connection resources through a concurrent-safe,
+  idempotent close operation.
 
 ## Non-goals
 
@@ -73,6 +78,8 @@ compile fixture is not that evidence.
   from consumer process crashes.
 - Private-network destinations, custom ports, HTTP, ambient proxies, redirects,
   mTLS, or arbitrary caller-provided transports in V1.
+- Consumer generation registries, request tracking, forced cancellation of
+  admitted deliveries, or ownership of consumer-supplied transports.
 
 ## Acceptance
 

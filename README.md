@@ -31,7 +31,9 @@ V1 provides:
 - explicit bounded retry classification, `Retry-After`, cancellation,
   per-attempt timeout, response-header limit, and response-body limit;
 - mandatory consumer-owned receipt recording before retry or return; and
-- explicit signing key IDs for bounded receiver-side secret rotation.
+- explicit signing key IDs for bounded receiver-side secret rotation; and
+- explicit concurrent-safe dispatcher retirement that rejects new delivery
+  admission and releases owned idle transport connections.
 
 It does not provide exactly-once delivery. A receiver can commit work before a
 sender observes a timeout. The receiver must durably deduplicate the stable
@@ -74,6 +76,7 @@ dispatcher, err := webhooks.New(webhooks.Config{
 if err != nil {
 	return err
 }
+defer dispatcher.Close()
 
 result, err := dispatcher.Deliver(ctx, webhooks.Message{
 	Endpoint:    authorizedEndpoint,
@@ -102,6 +105,13 @@ receipts and never log the fingerprint or whole result. Library-produced
 microsecond precision before both recorder and result exposure. An in-memory
 map would not protect multiple processes or survive a crash, so the library
 does not fake that guarantee.
+
+`Close` is safe to call repeatedly and concurrently. Once it begins, new
+`Deliver` admissions return `ErrClosed`; calls already admitted may finish.
+It releases the dispatcher's owned idle HTTP connections without canceling
+active delivery. Consumers rotating signing generations should first stop new
+work for the old generation, wait for their own work to quiesce, then close and
+discard that dispatcher.
 
 ## Receiver contract
 

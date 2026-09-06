@@ -1,7 +1,7 @@
 schema_version = 1
 project = "gotth-webhooks"
 profile = "strict"
-active = "outbound-v1-admission"
+active = "dispatcher-lifecycle-repair"
 
 [settings]
 worktree_root = "worktrees"
@@ -58,6 +58,50 @@ change = "new"
 
 [[feature.outbound-v1-admission.verification]]
 id = "local"
+kind = "unit"
+command = "make verify"
+required = true
+timeout_seconds = 1200
+side_effect = "local_write"
+network = false
+retries = 0
+
+[feature.dispatcher-lifecycle-repair]
+id = "dispatcher-lifecycle-repair"
+slug = "dispatcher-lifecycle-repair"
+name = "Add explicit dispatcher lifecycle"
+namespace = "webhooks"
+parent = ""
+state = "in_progress"
+risk = "high"
+assurance = "traceable-tests"
+created_at = "2026-09-06T17:43:44Z"
+activated_at = "2026-09-06T17:43:44Z"
+updated_at = "2026-09-06T17:43:44Z"
+folder = "workflow/features/dispatcher-lifecycle-repair"
+source_path = "pkg/webhooks"
+worktree = "/home/linus/.openclaw/workspace/.artifacts/worktrees/gotth-webhooks-dispatcher-lifecycle"
+branch = "feature/v1-dispatcher-lifecycle"
+scope = ["Dispatcher close admission", "Owned transport idle-resource cleanup", "Lifecycle concurrency tests", "Verification evidence"]
+non_goals = ["Request tracking", "Consumer generation registry", "Forced cancellation", "Public transport injection", "Remote mutation"]
+affected_files = ["README.md", "docs/**", "pkg/webhooks/**", "workflow.toml", "workflow.events.jsonl", "workflow/features/dispatcher-lifecycle-repair/**"]
+invariants = ["Calls admitted before close may finish", "Calls admitted after close perform no delivery work", "Owned transport cleanup runs exactly once", "No consumer lifecycle policy is invented"]
+acceptance = ["ErrClosed and Close are documented public contracts", "Focused lifecycle and concurrency tests cover the issue surface", "Race, repeat, coverage, fuzz, performance, external-consumer, and clean-clone gates pass", "Exact evidence is retained and the feature worktree is clean"]
+
+[feature.dispatcher-lifecycle-repair.rollback]
+strategy = "revert_local_feature_commits"
+notes = "No push, tag, release, deployment, migration, or consumer pin is part of this repair"
+data_loss_risk = false
+requires_migration_down = false
+
+[[feature.dispatcher-lifecycle-repair.interface]]
+name = "Dispatcher lifecycle API"
+kind = "api"
+stability = "unstable-unreleased"
+change = "additive"
+
+[[feature.dispatcher-lifecycle-repair.verification]]
+id = "full"
 kind = "unit"
 command = "make verify"
 required = true
