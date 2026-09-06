@@ -6,34 +6,6 @@ Released sections use Semantic Versioning; unreleased work remains under
 
 ## Unreleased
 
-### 2026-09-06 00:54 CDT — Route vulnerability reports through GitHub
-
-Commit: current commit; hash assigned by Git after commit
-
-Affected files:
-
-- `README.md`
-- `CONTRIBUTING.md`
-- `SECURITY.md`
-- `docs/distribution.md`
-- `docs/CHANGELOG.md`
-
-Explanation:
-
-Keep Forgejo as the canonical development source while routing public bugs to
-GitHub Issues and confidential vulnerability reports to GitHub private
-security advisories. Remove the obsolete private Forgejo reporting path and
-the retired `agents/` namespace.
-
-Verification:
-
-- documentation whitespace and stale-policy scans
-- direct GitHub API confirmation that private vulnerability reporting is enabled
-
-Risks / non-goals:
-
-- no source code, public API, tag, release, deployment, or compatibility promise changed
-
 Records are grouped by lineage. The active outbound-V1 feature lineage appears
 first in ascending Git commit time; the pre-feature distribution lineage
 follows, also in ascending Git commit time. A final `current commit` placeholder
@@ -1254,3 +1226,32 @@ Verification:
 Risks / non-goals:
 
 - Formatting does not establish or modify distribution policy.
+
+### 2026-09-06 00:54 CDT — Route vulnerability reports through GitHub
+
+Commit: `cb90a5825ddfe951b53e1ca18ae992c278008954`
+
+Affected files:
+
+- `README.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `docs/distribution.md`
+- `docs/CHANGELOG.md`
+
+Explanation:
+
+Keep Forgejo as the canonical development source while routing public bugs to
+GitHub Issues and confidential vulnerability reports to GitHub private
+security advisories. Remove the obsolete private Forgejo reporting path and
+the retired `agents/` namespace.
+
+Verification:
+
+- documentation whitespace and stale-policy scans
+- direct GitHub API confirmation that private vulnerability reporting is enabled
+
+Risks / non-goals:
+
+- no source code, public API, tag, release, deployment, or compatibility
+  promise changed
