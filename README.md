@@ -3,10 +3,9 @@
 Consumer-neutral mechanics for bounded, signed outbound webhooks.
 
 > **Distribution:** Forgejo remains canonical development. GitHub is the public
-> clone and future Go/release endpoint after release admission. This branch is
-> an unreleased technical review candidate; no tag or compatibility promise
-> exists yet. Standalone technical admission depends on repository gates and
-> independent orchestrator review. Release and compatibility remain blocked
+> clone and future Go/release endpoint after release admission. The standalone
+> implementation is technically admitted but unreleased; no tag or
+> compatibility promise exists yet. Release and compatibility remain blocked
 > until one real product consumer supplies a contract, validates behavior
 > against an exact dependency pin, and completes the release gates. See
 > [the distribution contract](docs/distribution.md).

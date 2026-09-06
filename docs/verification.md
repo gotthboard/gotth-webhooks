@@ -11,10 +11,11 @@ verifies each fixture hash and registry metadata, parses all 26 IPv4 and 25
 IPv6 allocations, and requires every allocation to be covered by the unchanged
 compact production deny table. No test or runtime fetch occurs.
 
-The feature remains `in_progress`; final standalone technical admission is
-orchestrator-owned and is not claimed here. A real-consumer contract,
-behavioral validation, and exact dependency pin remain separate hard
-release/compatibility gates under `docs/RELEASING.md`.
+Two fresh independent reviews of exact evidence head
+`92c3de21d512341cf862068f36c94ca7a70ed1b3` returned CLEAN. The standalone
+technical implementation is admitted. A real-consumer contract, behavioral
+validation, and exact dependency pin remain separate hard release/compatibility
+gates under `docs/RELEASING.md`.
 
 Exact source gates used Go 1.26.6-X:nodwarf5 on development Linux amd64 in the
 isolated clean detached clone

@@ -21,9 +21,9 @@ observation. Every gate retained before/after HEAD and clean-status traces.
 Exact artifact paths, hashes, coverage gaps, and limitations are in
 `docs/verification.md`.
 
-The source repair is technically clean in this worker audit, but final
-standalone technical admission remains orchestrator-owned and the feature
-stays `in_progress`. Technical admission does not release the module or
-promise compatibility. A real-consumer contract, behavioral validation, and
-exact dependency pin remain hard release/compatibility gates under
-`docs/RELEASING.md`. No forbidden action occurred.
+Two fresh independent reviews of exact evidence head `92c3de2` returned CLEAN.
+The standalone technical implementation is admitted and the feature is `done`.
+Technical admission does not release the module or promise compatibility. A
+real-consumer contract, behavioral validation, and exact dependency pin remain
+hard release/compatibility gates under `docs/RELEASING.md`. No forbidden action
+occurred.
