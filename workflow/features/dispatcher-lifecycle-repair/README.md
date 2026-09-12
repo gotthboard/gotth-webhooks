@@ -1,8 +1,9 @@
 # Dispatcher lifecycle repair
 
-Status: `in_progress`; independent review 1 rejected the first candidate. The
-drain-before-cleanup repair and exact-source evidence are complete; independent
-rereview and admission remain orchestrator-owned.
+Status: `done`. Independent review 1 rejected the first candidate. The
+drain-before-cleanup repair closed that race; independent reviews 2 and 3 then
+returned CLEAN on exact final candidate `48f13fc`, so the repair is technically
+admitted.
 
 Add the smallest public lifecycle boundary needed to retire one dispatcher:
 reject new delivery admission, wait for admitted calls to finish, and only then
@@ -18,3 +19,10 @@ Initial verification: [evidence/verification.md](evidence/verification.md)
 
 Review repair verification:
 [evidence/repair-1/verification.md](evidence/repair-1/verification.md)
+
+Final admission verification:
+[evidence/final-48f13fc/verification.md](evidence/final-48f13fc/verification.md)
+
+Technical admission does not release the module or promise compatibility. A
+real-consumer contract, behavioral validation, exact dependency pin, and the
+release gates remain required.

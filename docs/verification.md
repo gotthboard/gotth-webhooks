@@ -1,6 +1,6 @@
 # Verification status
 
-## Dispatcher lifecycle repair candidate
+## Admitted dispatcher lifecycle repair
 
 Independent review 1 rejected evidence HEAD `065ba1d9` because cleanup could
 precede an admitted delivery's first or retried `RoundTrip`. Repair source
@@ -15,11 +15,16 @@ external-consumer, and second-clean-clone gates. Repository coverage is 97.5%;
 `Close` and every changed lifecycle decision are 100.0% covered. The closed
 path observed 0 B/op and 0 allocations/op.
 
-Raw logs, runner, coverage profile, identities, hashes, limitations, and the
-exact test oracle are retained under
-`workflow/features/dispatcher-lifecycle-repair/evidence/repair-1`. The feature
-remains `in_progress` pending independent rereview and orchestrator admission.
-No remote mutation or release action occurred.
+Raw repair logs, runner, coverage profile, identities, hashes, limitations, and
+the exact test oracle are retained under
+`workflow/features/dispatcher-lifecycle-repair/evidence/repair-1`. Exact final
+candidate `48f13fc30dcc5096c88f39da3890103ef581f55b`, tree
+`4bf21b3ffeee8f35d5fd731b78b26f7abf0eea60`, passed a second complete
+development-host gate after incorporating current canonical `main`. Those logs
+and hashes are retained under
+`workflow/features/dispatcher-lifecycle-repair/evidence/final-48f13fc`.
+Independent reviews 2 and 3 returned CLEAN on that exact candidate, so the
+feature is technically admitted. No remote mutation or release action occurred.
 
 ## Post-admission receipt-time repair
 

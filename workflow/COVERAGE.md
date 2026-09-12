@@ -10,11 +10,11 @@
 | WHK-009/012 | receipt model | detached record, exact UTC microsecond timestamps, and sensitive fingerprint | ordering, duration, UTC/microsecond alignment across success, transport failure, and recorder failure, failure stop, unknown outcomes, fingerprint stability | admitted-covered |
 | WHK-011 | concurrency | immutable delivery configuration, concurrent Recorder obligation | overlapping recorder calls, concurrent deliveries, repeated race | admitted-covered |
 | WHK-013 | distribution | `LICENSE` and policy docs | license inventory | admitted-covered |
-| WHK-014 | lifecycle | shared close admission, admitted-delivery drain, then one owned-transport cleanup | closed precedence/no-side-effects, pauses before first RoundTrip and between retries, admitted-call completion, value-copy state, concurrent/repeated close, closable/non-closable transport branches, focused race x50, allocation proof | repaired-candidate-covered; rereview pending |
+| WHK-014 | lifecycle | shared close admission, admitted-delivery drain, then one owned-transport cleanup | closed precedence/no-side-effects, pauses before first RoundTrip and between retries, admitted-call completion, value-copy state, concurrent/repeated close, closable/non-closable transport branches, focused race x50, allocation proof | admitted-covered |
 
-These statuses cover the admitted standalone technical implementation plus the
-explicitly marked dispatcher-lifecycle repair candidate. Two fresh independent
-reviews of exact evidence head `92c3de2` returned CLEAN. A real-consumer
+These statuses cover the admitted standalone technical implementation,
+including the dispatcher-lifecycle repair. Two fresh independent reviews of
+exact evidence head `92c3de2` returned CLEAN. A real-consumer
 contract, behavioral validation, and exact dependency pin are separate hard
 release/compatibility gates; the synthetic compile fixture is not a
 compatibility oracle. Coverage is 97.3% at exact source object
@@ -27,5 +27,5 @@ its canonicalization helper is 100.0% covered and two independent reviews
 admitted it at `2b10dc0`. The dispatcher lifecycle repair has fresh 97.5%
 repository coverage at exact source
 `120db639e874419a71af4e10447b8e9ea1f73913`; `Close` and every changed
-lifecycle decision are 100.0% covered. The remaining 2.5% is pre-existing.
-Independent rereview remains orchestrator-owned.
+lifecycle decision are 100.0% covered. The remaining 2.5% is pre-existing. Two
+fresh independent reviews admitted exact candidate `48f13fc`.

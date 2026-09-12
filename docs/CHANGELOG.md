@@ -1360,6 +1360,44 @@ Risks / non-goals:
 - These records do not merge, push, tag, release, deploy, or create a
   compatibility promise.
 
+### 2026-09-12 14:34 CDT - Admit dispatcher lifecycle repair
+
+Candidate: `48f13fc30dcc5096c88f39da3890103ef581f55b`
+
+Review record: `fc27c26b751c1b0133c6b4a5890513cb9774c0c8`
+
+Admission commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `docs/verification.md`
+- `workflow.toml`
+- `workflow.events.jsonl`
+- `workflow/COVERAGE.md`
+- `workflow/features/dispatcher-lifecycle-repair/README.md`
+- `workflow/features/dispatcher-lifecycle-repair/evidence/final-48f13fc/**`
+
+Explanation:
+
+Mark the repaired dispatcher lifecycle done after exact-HEAD gates and two
+fresh independent CLEAN reviews. Retain the final logs, runner, hashes,
+coverage, benchmark, and exact candidate identity. Keep release and
+compatibility blocked on a real consumer.
+
+Verification:
+
+- full, verify, fresh race coverage, full/focused race x50: PASS
+- all three five-second fuzz campaigns: PASS
+- allocation proof and benchmark: PASS
+- evidence hashes and CLEAN/CLEAN reviews: PASS
+
+Risks / non-goals:
+
+- No Board edit, remote mutation, PR, push, tag, release, compatibility
+  promise, deployment, or live-service change.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

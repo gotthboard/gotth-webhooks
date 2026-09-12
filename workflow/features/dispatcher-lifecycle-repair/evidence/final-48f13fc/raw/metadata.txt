@@ -1,0 +1,5 @@
+candidate=48f13fc30dcc5096c88f39da3890103ef581f55b
+tree=4bf21b3ffeee8f35d5fd731b78b26f7abf0eea60
+bundle_sha256=7427891d7cfd03ada24ee5d686eb81f76483fe94b6276f0980d47e2b006f47be
+go_version=go version go1.26.6-X:nodwarf5 linux/amd64
+kernel=Linux 7.1.5-arch1-2 x86_64 GNU/Linux
