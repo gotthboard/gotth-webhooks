@@ -2,10 +2,14 @@
 
 ## Endpoints
 
-- Canonical development and change tracking:
-  <https://git.dannyhunn.com/agents/gotth-webhooks>
-- Public clone and, only after implementation admission, future releases:
+- Canonical development source:
+  <https://git.dannyhunn.com/gotthboard/gotth-webhooks>
+- Public clone and future releases after consumer and release admission:
   <https://github.com/gotthboard/gotth-webhooks>
+- Public bug tracker:
+  <https://github.com/gotthboard/gotth-webhooks/issues>
+- Private vulnerability reports:
+  <https://github.com/gotthboard/gotth-webhooks/security/advisories/new>
 
 Forgejo pushes one way to GitHub. GitHub does not feed commits or tags back to
 Forgejo. A ref is distributed only when the exact object ID is visible at both
@@ -13,10 +17,9 @@ endpoints.
 
 ## Maturity and compatibility
 
-Current status: implemented standalone technical admission candidate; no final
-orchestrator admission, release, tag, public compatibility promise, or
-real-consumer pin. Local green evidence does not itself admit the
-implementation.
+Current status: the standalone implementation and receipt-time compatibility
+repair are technically admitted. No release, tag, public compatibility promise,
+or real-consumer pin exists.
 
 ## Installation
 
@@ -35,9 +38,8 @@ contracts.
 ## Licensing gate
 
 The maintainer selected MIT and the repository now carries the exact license
-text. Release publication remains blocked on implementation admission,
-consumer verification, clean exact-ref verification, and explicit release
-authorization.
+text. Release publication remains blocked on real-consumer verification,
+clean exact-ref verification, and explicit release authorization.
 
 ## Migration traceability
 

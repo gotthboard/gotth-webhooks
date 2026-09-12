@@ -11,6 +11,9 @@ Consumer-neutral mechanics for bounded, signed outbound webhooks.
 > the release gates. See
 > [the distribution contract](docs/distribution.md).
 
+> Report public bugs through GitHub Issues and security vulnerabilities through
+> GitHub private reporting.
+
 ## Boundary
 
 The package sends opaque bytes only after the caller has authorized and
