@@ -1303,6 +1303,33 @@ Risks / non-goals:
 - No Board or notify edit, PR, merge, push, tag, release, deployment, live
   request, or remote mutation occurred.
 
+### 2026-09-12 14:26 CDT - Repair lifecycle admission traceability
+
+Commit: current commit; hash assigned by Git after commit
+
+Affected files:
+
+- `README.md`
+- `docs/CHANGELOG.md`
+- `workflow/COVERAGE.md`
+
+Explanation:
+
+Remove the duplicated conjunction from the public lifecycle capability list
+and stop describing the already-admitted receipt-time repair as pending. Keep
+the dispatcher-lifecycle repair explicitly identified as the sole current
+candidate.
+
+Verification:
+
+- documentation whitespace and exact stale-status scans
+- focused lifecycle tests
+
+Risks / non-goals:
+
+- No public mechanism, API, release claim, Board tree, remote repository, or
+  live service changes.
+
 ### 2026-09-03 00:52:57 CDT — Establish GitHub public distribution
 
 Commit: `9bb9a46e35e5b9de70ed17507f233f6bdd9fc0d4`

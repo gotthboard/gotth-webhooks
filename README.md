@@ -33,7 +33,7 @@ V1 provides:
   and no redirects;
 - explicit bounded retry classification, `Retry-After`, cancellation,
   per-attempt timeout, response-header limit, and response-body limit;
-- mandatory consumer-owned receipt recording before retry or return; and
+- mandatory consumer-owned receipt recording before retry or return;
 - explicit signing key IDs for bounded receiver-side secret rotation; and
 - explicit concurrent-safe dispatcher retirement that rejects new delivery
   admission and releases owned idle transport connections.
